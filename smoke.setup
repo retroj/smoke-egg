@@ -1,0 +1,11 @@
+;; -*- scheme -*-
+
+(compile smoke.scm -j smoke -s -O2 -d0 -c++
+         -lsmokebase -lsmokeqtcore -lsmokeqtgui)
+(compile smoke.import.scm -s -O2 -d0 -c++
+         -lsmokebase -lsmokeqtcore -lsmokeqtgui)
+
+(install-extension
+ 'smoke
+ '("smoke.so" "smoke.import.so")
+ '((version 0.1)))

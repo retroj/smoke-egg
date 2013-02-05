@@ -1,0 +1,6 @@
+;; -*- scheme -*-
+
+((license "BSD")
+ (category ffi)
+ (author "John J. Foerch")
+ (synopsis "Smoke"))

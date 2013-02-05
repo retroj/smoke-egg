@@ -214,7 +214,8 @@ int themain ()
 
 <#
 
-(printf "Hello, World!~%")
+
+(printf "smoke-egg: started~%")
 
 ((foreign-lambda int themain))
 

@@ -97,13 +97,6 @@ public:
     }
 };
  
-// just for convenience, so we can pass Smoke::ModuleIndexes to std::cout
-ostream& operator<<(ostream& lhs, Smoke::ModuleIndex rhs)
-{
-    lhs << "[" << rhs.smoke->moduleName() << ", " << rhs.index << "]";
-    return lhs;
-}
- 
 int themain ()
 {
     int argc = 0;
@@ -125,8 +118,11 @@ int themain ()
      * ? is a non-scalar (reference to array or hash, undef) */
     Smoke::ModuleIndex methId = classId.smoke->findMethod("QApplication",
         "QApplication$?");  // find the constructor
-    cout << "QApplication classId: " << classId
-         << ", QApplication($?) methId: " << methId << endl;
+    printf("QApplication classId: [%s, %d], QApplication($?) methId: [%s, %d]\n",
+           classId.smoke->moduleName(),
+           classId.index,
+           methId.smoke->moduleName(),
+           methId.index);
  
     // get the Smoke::Class
     Smoke::Class klass = classId.smoke->classes[classId.index];
@@ -156,8 +152,11 @@ int themain ()
     // create a widget
     classId = qtcore_Smoke->findClass("QWidget");
     methId = classId.smoke->findMethod("QWidget", "QWidget");
-    cout << "QWidget classId: " << classId
-         << ", QWidget() methId: " << methId << endl;
+    printf("QWidget classId: [%s, %d], QWidget() methId: [%s, %d]\n",
+           classId.smoke->moduleName(),
+           classId.index,
+           methId.smoke->moduleName(),
+           methId.index);
  
     klass = classId.smoke->classes[classId.index];
     meth = methId.smoke->methods[methId.smoke->methodMaps[methId.index].method];
@@ -170,16 +169,21 @@ int themain ()
  
     // show the widget
     methId = classId.smoke->findMethod("QWidget", "show");
-    cout << "QWidget classId: " << classId << ", show() methId: "
-         << methId << endl;
+    printf("QWidget classId: [%s, %d], show() methId: [%s, %d]\n",
+           classId.smoke->moduleName(),
+           classId.index,
+           methId.smoke->moduleName(),
+           methId.index);
     meth = methId.smoke->methods[methId.smoke->methodMaps[methId.index].method];
     (*klass.classFn)(meth.method, widget, 0);
  
     // we don't even need findClass() when we use the classId provided
     // by the MethodMap
     methId = qtgui_Smoke->findMethod("QApplication", "exec");
-    cout << "QApplication classId: " << qtgui_Smoke->methodMaps[methId.index].classId
-         << ", exec() methId: " << methId << endl;
+    printf("QApplication classId: %d, exec() methId: [%s, %d]\n",
+           qtgui_Smoke->methodMaps[methId.index].classId,
+           methId.smoke->moduleName(),
+           methId.index);
  
     klass = methId.smoke->classes[methId.smoke->methodMaps[methId.index].classId];
     meth = methId.smoke->methods[methId.smoke->methodMaps[methId.index].method];
@@ -192,9 +196,10 @@ int themain ()
  
     // destroy the QApplication instance
     methId = qtgui_Smoke->findMethod("QApplication", "~QApplication");
-    cout << "QApplication classId: "
-         << qtgui_Smoke->methodMaps[methId.index].classId
-         << ", ~QApplication() methId: " << methId << endl;
+    printf("QApplication classId: %d, ~QApplication() methId: [%s, %d]\n",
+           qtgui_Smoke->methodMaps[methId.index].classId,
+           methId.smoke->moduleName(),
+           methId.index);
     meth = methId.smoke->methods[methId.smoke->methodMaps[methId.index].method];
     (*klass.classFn)(meth.method, qapp, 0);
  

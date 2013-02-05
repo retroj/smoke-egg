@@ -103,8 +103,8 @@ int themain ()
     char **argv;
 
     // init the Qt SMOKE runtime
-    init_qtcore_Smoke();
-    init_qtgui_Smoke();
+    //init_qtcore_Smoke();
+    //init_qtgui_Smoke();
  
     // create a SmokeBinding for the Qt SMOKE runtime
     MySmokeBinding qtcoreBinding(qtcore_Smoke);
@@ -204,8 +204,8 @@ int themain ()
     (*klass.classFn)(meth.method, qapp, 0);
  
     // destroy the smoke instance
-    delete qtcore_Smoke;
-    delete qtgui_Smoke;
+    //delete qtcore_Smoke;
+    //delete qtgui_Smoke;
  
     // return the previously stored value
     return retval;
@@ -214,10 +214,16 @@ int themain ()
 
 <#
 
+(use smoke-qtcore)
+(use smoke-qtgui)
 
 (printf "smoke-egg: started~%")
 
+(init-qtcore-smoke)
+(init-qtgui-smoke)
 ((foreign-lambda int themain))
+(delete-qtcore-smoke)
+(delete-qtgui-smoke)
 
 '(define-foreign-type Smoke c-pointer)
 

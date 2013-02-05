@@ -107,9 +107,11 @@ int themain ()
     //init_qtgui_Smoke();
  
     // create a SmokeBinding for the Qt SMOKE runtime
-    MySmokeBinding qtcoreBinding(qtcore_Smoke);
-    MySmokeBinding qtguiBinding(qtgui_Smoke);
+    MySmokeBinding *qtcoreBinding = new MySmokeBinding(qtcore_Smoke);
+    MySmokeBinding *qtguiBinding = new MySmokeBinding(qtgui_Smoke);
  
+
+
     // find the 'QApplication' class
     Smoke::ModuleIndex classId = qtcore_Smoke->findClass("QApplication");
     /* find the methodId. we use a munged method signature, where 
@@ -123,15 +125,12 @@ int themain ()
            classId.index,
            methId.smoke->moduleName(),
            methId.index);
- 
     // get the Smoke::Class
     Smoke::Class klass = classId.smoke->classes[classId.index];
- 
     // findMethod() returns an index into methodMaps, which has
     // information about the classId, methodNameId and methodId. we 
     // are interested in the methodId to get a Smoke::Method
     Smoke::Method meth = methId.smoke->methods[methId.smoke->methodMaps[methId.index].method];
- 
     Smoke::StackItem stack[3];
     // QApplication expects a reference to argc, so we pass it as a pointer
     stack[1].s_voidp = &argc;
@@ -139,16 +138,16 @@ int themain ()
     // call the constructor, Smoke::Method::method is the methodId
     // specifically for this class.
     (*klass.classFn)(meth.method, 0, stack);
- 
     // the zeroth element contains the return value, in this case the
     // QApplication instance
     void *qapp = stack[0].s_voidp;
- 
     // method index 0 is always "set smoke binding" - needed for
     // virtual method callbacks etc.
-    stack[1].s_voidp = &qtguiBinding;
+    stack[1].s_voidp = qtguiBinding;
     (*klass.classFn)(0, qapp, stack);
- 
+
+
+
     // create a widget
     classId = qtcore_Smoke->findClass("QWidget");
     methId = classId.smoke->findMethod("QWidget", "QWidget");
@@ -157,16 +156,16 @@ int themain ()
            classId.index,
            methId.smoke->moduleName(),
            methId.index);
- 
     klass = classId.smoke->classes[classId.index];
     meth = methId.smoke->methods[methId.smoke->methodMaps[methId.index].method];
- 
     (*klass.classFn)(meth.method, 0, stack);
     void *widget = stack[0].s_voidp;
     // set the smoke binding
-    stack[1].s_voidp = &qtguiBinding;
+    stack[1].s_voidp = qtguiBinding;
     (*klass.classFn)(0, widget, stack);
- 
+
+
+
     // show the widget
     methId = classId.smoke->findMethod("QWidget", "show");
     printf("QWidget classId: [%s, %d], show() methId: [%s, %d]\n",
@@ -176,7 +175,9 @@ int themain ()
            methId.index);
     meth = methId.smoke->methods[methId.smoke->methodMaps[methId.index].method];
     (*klass.classFn)(meth.method, widget, 0);
- 
+
+
+
     // we don't even need findClass() when we use the classId provided
     // by the MethodMap
     methId = qtgui_Smoke->findMethod("QApplication", "exec");
@@ -184,16 +185,15 @@ int themain ()
            qtgui_Smoke->methodMaps[methId.index].classId,
            methId.smoke->moduleName(),
            methId.index);
- 
     klass = methId.smoke->classes[methId.smoke->methodMaps[methId.index].classId];
     meth = methId.smoke->methods[methId.smoke->methodMaps[methId.index].method];
- 
     // call QApplication::exec()
     (*klass.classFn)(meth.method, 0, stack);  
- 
     // store the return value of QApplication::exec()
     int retval = stack[0].s_int;
- 
+
+
+
     // destroy the QApplication instance
     methId = qtgui_Smoke->findMethod("QApplication", "~QApplication");
     printf("QApplication classId: %d, ~QApplication() methId: [%s, %d]\n",
@@ -206,6 +206,9 @@ int themain ()
     // destroy the smoke instance
     //delete qtcore_Smoke;
     //delete qtgui_Smoke;
+
+    delete qtcoreBinding;
+    delete qtguiBinding;
  
     // return the previously stored value
     return retval;

@@ -60,6 +60,7 @@
     m))
 
 
+#|
 #>
 #include <smoke/qtcore_smoke.h>
 #include <smoke/qtgui_smoke.h>
@@ -239,24 +240,8 @@ int themain ()
     return retval;
 }
 
-
 <#
-
-(use smoke-qtcore)
-(use smoke-qtgui)
-
-(printf "smoke-egg: started~%")
-
-(init-qtcore-smoke)
-(init-qtgui-smoke)
-(define-foreign-variable qtgui-smoke c-pointer "qtgui_Smoke")
-(let ((gsmoke (make <Smoke> 'this qtgui-smoke)))
-  (find-method gsmoke "QApplication" "QApplication#?"))
-((foreign-lambda int themain))
-(delete-qtcore-smoke)
-(delete-qtgui-smoke)
-
-'(define-foreign-type Smoke c-pointer)
+|#
 
 ;; #>
 ;; // Find the method's index

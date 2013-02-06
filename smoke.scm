@@ -35,6 +35,23 @@
  extras)
 
 (foreign-declare "#include <smoke.h>")
+
+
+(define-class <Smoke> ()
+  (this))
+
+(define-foreign-type Smoke (instance Smoke <Smoke>))
+
+(define-foreign-type ModuleIndex (c-pointer (struct ModuleIndex)))
+
+(define (find-method smoke class method)
+  ;;XXX: make sure methId gets garbage-collected
+  (foreign-lambda* ModuleIndex
+      ((Smoke smoke) (c-string cname) (c-string mname))
+    "Smoke::ModuleIndex methId = smoke->findMethod(cname, mname);"
+    "C_return(&methId);"))
+
+
 #>
 #include <smoke/qtcore_smoke.h>
 #include <smoke/qtgui_smoke.h>
@@ -224,6 +241,9 @@ int themain ()
 
 (init-qtcore-smoke)
 (init-qtgui-smoke)
+(define-foreign-variable qtgui-smoke c-pointer "qtgui_Smoke")
+(let ((gsmoke (make <Smoke> 'this qtgui-smoke)))
+  (find-method gsmoke "QApplication" "QApplication#?"))
 ((foreign-lambda int themain))
 (delete-qtcore-smoke)
 (delete-qtgui-smoke)

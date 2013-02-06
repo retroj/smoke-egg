@@ -32,7 +32,8 @@
 (use
  coops
  cplusplus-object
- extras)
+ extras
+ foreigners)
 
 (foreign-declare "#include <smoke.h>")
 
@@ -42,14 +43,21 @@
 
 (define-foreign-type Smoke (instance Smoke <Smoke>))
 
-(define-foreign-type ModuleIndex (c-pointer (struct ModuleIndex)))
+(define-foreign-record-type ModuleIndex
+  (Smoke smoke ModuleIndex-smoke)
+  (short index ModuleIndex-index))
 
 (define (find-method smoke class method)
-  ;;XXX: make sure methId gets garbage-collected
-  (foreign-lambda* ModuleIndex
-      ((Smoke smoke) (c-string cname) (c-string mname))
-    "Smoke::ModuleIndex methId = smoke->findMethod(cname, mname);"
-    "C_return(&methId);"))
+  (define %find-method
+    (foreign-lambda* ModuleIndex
+        ((Smoke smoke) (c-string cname) (c-string mname))
+      "Smoke::ModuleIndex methId = smoke->findMethod(cname, mname);"
+      "Smoke::ModuleIndex *m = (Smoke::ModuleIndex*)malloc(sizeof(Smoke::ModuleIndex));"
+      "memcpy(m, &methId, sizeof(Smoke::ModuleIndex));"
+      "C_return(m);"))
+  (let ((m (%find-method smoke class method)))
+    (set-finalizer! m free)
+    m))
 
 
 #>

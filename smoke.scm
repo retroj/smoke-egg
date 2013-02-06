@@ -38,7 +38,7 @@
 
 
 (define-class <Smoke> ()
-  (this))
+  ((this)))
 
 (define-foreign-type Smoke (instance Smoke <Smoke>))
 

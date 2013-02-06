@@ -230,17 +230,6 @@ int themain ()
 
 '(define-foreign-type Smoke c-pointer)
 
-
-;; struct ModuleIndex {
-;;     Smoke* smoke;
-;;     Index index;
-;; };
-
-
-'(define (find-method smoke class method)
-  ;; returns ModuleIndex object
-  )
-
 ;; #>
 ;; // Find the method's index
 ;; Smoke::ModuleIndex mi = smoke->findMethod( "QLabel", "QLabel$#$" );

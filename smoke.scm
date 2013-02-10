@@ -97,18 +97,18 @@ public:
 };
 <#
 
-(define-generic (constructor this))
 (define-generic (destructor this))
 
 (define-class <SchemeSmokeBinding> ()
-  ((this)))
+  ((this)
+   (smoke initform: (error "'smoke field required"))))
 
-(define-method (constructor (this <SchemeSmokeBinding>) . initargs)
+(define-method (initialize-instance (this <SchemeSmokeBinding>))
+  (call-next-method)
   (set! (slot-value this 'this)
-        (apply
-         (foreign-lambda (c-pointer "SchemeSmokeBinding")
+        ((foreign-lambda (c-pointer "SchemeSmokeBinding")
                          "new SchemeSmokeBinding" Smoke)
-         initargs)))
+         (slot-value (slot-value this 'smoke) 'this))))
 
 (define-method (destructor (this <SchemeSmokeBinding>))
   ((foreign-lambda void "delete " (c-pointer "SchemeSmokeBinding"))

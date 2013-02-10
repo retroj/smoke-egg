@@ -98,11 +98,16 @@ public:
 };
 <#
 
+(define delete-MySmokeBinding
+  (foreign-lambda* void (((c-pointer "MySmokeBinding") p))
+    "delete p;"))
 
 (define (make-MySmokeBinding smoke)
-  ((foreign-lambda* c-pointer ((Smoke smoke))
-     "C_return(new MySmokeBinding(smoke));")
-   (slot-value smoke 'this)))
+  (let ((b ((foreign-lambda* c-pointer ((Smoke smoke))
+              "C_return(new MySmokeBinding(smoke));")
+            (slot-value smoke 'this))))
+    (set-finalizer! b delete-MySmokeBinding)
+    b))
 
 
 

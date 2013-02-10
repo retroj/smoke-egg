@@ -221,40 +221,4 @@ public:
      "fn(m->method, thisobj, (Smoke::Stack)stack);")
    smoke classid methidx thisobj stack))
 
-
-;; (define-class <Point> (<c++-object>) ())
-
-;; (declare (hide g0))
-;; (define g0
-;;   (foreign-lambda void "delete " (c-pointer "Point")))
-;; (define-method (destructor (this <Point>))
-;;   (g0 (slot-value this 'this)))
-
-;; (declare (hide g1))
-;; (define g1
-;;   (foreign-lambda (c-pointer "Point") "new Point" integer integer))
-;; (define-method
-;;   (constructor (this <Point>) initargs)
-;;   (set! (slot-value this 'this) (##sys#apply g1 initargs)))
-
-;; (declare (hide g2))
-;; (define g2
-;;   (foreign-lambda*
-;;       void
-;;       (((c-pointer "Point") g3) (integer g4) (integer g5))
-;;     "g3->shift(g4,g5);"))
-;; (define-method
-;;   (shift (this <Point>) #!rest args)
-;;   (##sys#apply g2 (slot-value this 'this) args))
-
-;; (declare (hide g6))
-;; (define g6
-;;   (foreign-lambda*
-;;       "string"
-;;       (((c-pointer "Point") g7))
-;;     "return(g7->toString());"))
-;; (define-method
-;;   (toString (this <Point>) #!rest args)
-;;   (##sys#apply g6 (slot-value this 'this) args))
-
 )

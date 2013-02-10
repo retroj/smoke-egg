@@ -198,12 +198,12 @@ public:
        ((Smoke smoke) (ModuleIndex methId) (c-pointer thisobj) (Stack stack))
      "Smoke::Index methodIdx;"
      "if (methId->index > 0) {"
-     "    methodIdx = smoke->methodMaps[methId->index].method;"
+     "    methodIdx = methId->smoke->methodMaps[methId->index].method;"
      "} else {"
      "    /* Resolve ambiguous method call */"
      "}"
-     "Smoke::Method* m = smoke->methods + methodIdx;"
-     "Smoke::ClassFn fn = smoke->classes[m->classId].classFn;"
+     "Smoke::Method* m = methId->smoke->methods + methodIdx;"
+     "Smoke::ClassFn fn = methId->smoke->classes[m->classId].classFn;"
      "fn(m->method, thisobj, (Smoke::Stack)stack);"
      )
    smoke methId

@@ -79,6 +79,62 @@
     c))
 
 
+;;;
+;;; Stack
+;;;
+
+(define-foreign-type Stack c-pointer)
+
+(define (make-stack size)
+  (define %make-stack
+    (foreign-lambda* Stack ((size_t size))
+      "Smoke::StackItem *s = (Smoke::StackItem*)malloc(size * sizeof(Smoke::StackItem));"
+      "C_return(s);"))
+  (let ((s (%make-stack size)))
+    (set-finalizer! s free)
+    s))
+
+(define (stack-set-int-pointer! stack idx n)
+  (let-location ((n int n))
+    (stack-set-pointer! stack idx (location n))))
+
+(define stack-set-pointer!
+  (foreign-lambda* void
+      ((Stack stack) (size_t idx) (c-pointer p))
+    "Smoke::Stack s = (Smoke::Stack)stack;"
+    "s[idx].s_voidp = p;"))
+
+(define stack-set-unsigned-long!
+  (foreign-lambda* void
+      ((Stack stack) (size_t idx) (unsigned-long l))
+    "Smoke::Stack s = (Smoke::Stack)stack;"
+    "s[idx].s_ulong = l;"))
+
+
+;;;
+;;; Call Method
+;;;
+
+(define (call-method smoke methId thisobj stack)
+  ((foreign-lambda* void
+       ((Smoke smoke) (ModuleIndex methId) (c-pointer thisobj) (Stack stack))
+     "Smoke::Index methodIdx;"
+     "if (methId->index > 0) {"
+     "    methodIdx = smoke->methodMaps[methId->index].method;"
+     "} else {"
+     "    /* Resolve ambiguous method call */"
+     "}"
+     "Smoke::Method* m = smoke->methods + methodIdx;"
+     "Smoke::ClassFn fn = smoke->classes[m->classId].classFn;"
+     "fn(m->method, thisobj, (Smoke::Stack)stack);"
+     )
+   smoke methId
+   (if (eq? #f thisobj)
+       (foreign-value "((void*)0)" c-pointer)
+       thisobj)
+   stack))
+
+
 #|
 #>
 #include <smoke/qtcore_smoke.h>

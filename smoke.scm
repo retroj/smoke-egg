@@ -94,6 +94,11 @@
     (set-finalizer! s free)
     s))
 
+(define stack-pointer
+  (foreign-lambda* c-pointer ((Stack stack) (size_t idx))
+    "Smoke::Stack s = (Smoke::Stack)stack;"
+    "C_return(s[idx].s_voidp);"))
+
 (define (stack-set-int-pointer! stack idx n)
   (let-location ((n int n))
     (stack-set-pointer! stack idx (location n))))

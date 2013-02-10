@@ -38,6 +38,74 @@
 
 (foreign-declare "#include <smoke.h>")
 
+
+#>
+#include <iostream>
+#include <string>
+
+using namespace std;
+
+/*
+ * This class will intercept all virtual method calls and will get
+ * notified when an instance created by smoke gets destroyed.
+ */
+class MySmokeBinding : public SmokeBinding
+{
+public:
+    MySmokeBinding(Smoke *s) : SmokeBinding(s) {}
+
+    void deleted(Smoke::Index classId, void *obj) {
+        printf("~%s (%p)\n", className(classId), obj);
+    }
+
+    bool callMethod(Smoke::Index method, void *obj,
+        Smoke::Stack /*args*/, bool /*isAbstract*/)
+    {
+        Smoke::Method meth = smoke->methods[method];
+        string name;
+
+        // check for method flags
+        if (meth.flags & Smoke::mf_protected) name += "protected ";
+        if (meth.flags & Smoke::mf_const) name += "const ";
+
+        // add the name
+        name += smoke->methodNames[meth.name] + string("(");
+
+        // iterate over the argument list and build up the
+        // parameter names
+        Smoke::Index *idx = smoke->argumentList + meth.args;
+        while (*idx) {
+            name += smoke->types[*idx].name;
+            idx++;
+            if (*idx) name += ", ";
+        }
+        name += ")";
+
+        if (name == "protected mousePressEvent(QMouseEvent*)")
+            cout << className(meth.classId) << "(" << obj
+                 << ")::" << name << endl;
+        return false;
+    }
+
+    /*
+     * In a bindings runtime, this should return the classname as used
+     * in the bindings language, e.g. Qt::Widget in Ruby or
+     * Qyoto.QWidget in C#
+     */
+    char *className(Smoke::Index classId) {
+        return (char*) smoke->classes[classId].className;
+    }
+};
+<#
+
+
+(define (make-MySmokeBinding smoke)
+  ((foreign-lambda* c-pointer ((Smoke smoke))
+     "C_return(new MySmokeBinding(smoke));")
+   (slot-value smoke 'this)))
+
+
+
 (define-foreign-type Index short)
 
 (define-class <Smoke> ()

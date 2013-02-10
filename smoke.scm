@@ -49,10 +49,10 @@ using namespace std;
  * This class will intercept all virtual method calls and will get
  * notified when an instance created by smoke gets destroyed.
  */
-class MySmokeBinding : public SmokeBinding
+class SchemeSmokeBinding : public SmokeBinding
 {
 public:
-    MySmokeBinding(Smoke *s) : SmokeBinding(s) {}
+    SchemeSmokeBinding(Smoke *s) : SmokeBinding(s) {}
 
     void deleted(Smoke::Index classId, void *obj) {
         printf("~%s (%p)\n", className(classId), obj);
@@ -98,15 +98,15 @@ public:
 };
 <#
 
-(define delete-MySmokeBinding
-  (foreign-lambda* void (((c-pointer "MySmokeBinding") p))
+(define delete-SchemeSmokeBinding
+  (foreign-lambda* void (((c-pointer "SchemeSmokeBinding") p))
     "delete p;"))
 
-(define (make-MySmokeBinding smoke)
+(define (make-SchemeSmokeBinding smoke)
   (let ((b ((foreign-lambda* c-pointer ((Smoke smoke))
-              "C_return(new MySmokeBinding(smoke));")
+              "C_return(new SchemeSmokeBinding(smoke));")
             (slot-value smoke 'this))))
-    (set-finalizer! b delete-MySmokeBinding)
+    (set-finalizer! b delete-SchemeSmokeBinding)
     b))
 
 

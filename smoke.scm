@@ -39,19 +39,28 @@
 
 (define-foreign-type Index short)
 
+(define-foreign-type Stack c-pointer)
+
 
 (define (SchemeSmokeBinding-deleted this idx obj)
   (printf "~A~A (~A)~%" "~"
           (SchemeSmokeBinding-className this idx)
           obj))
 
-(define-external (SchemeSmokeBinding_deleted_cb (c-pointer this)
-                                                (Index classIdx)
-                                                (c-pointer obj))
-  void (SchemeSmokeBinding-deleted this classIdx obj))
+(define-external (SchemeSmokeBinding_deleted_cb
+                  (c-pointer this) (Index classidx) (c-pointer obj))
+  void (SchemeSmokeBinding-deleted this classidx obj))
 
-(define-external (SchemeSmokeBinding_callMethod_cb #;(c-string x))
-  void (print "SchemeSmokeBinding_callMethod_cb was called"))
+
+(define (SchemeSmokeBinding-callMethod this classidx methidx
+                                       obj stack abstract?)
+  (print "SchemeSmokeBinding_callMethod_cb was called"))
+
+(define-external (SchemeSmokeBinding_callMethod_cb
+                  (c-pointer this) (Index classidx) (Index methidx)
+                  (c-pointer obj) (Stack stack) (bool abstract?))
+  void (SchemeSmokeBinding-callMethod this classidx methidx
+                                      obj stack abstract?))
 
 #>
 #include <iostream>
@@ -60,7 +69,8 @@
 using namespace std;
 
 C_externexport void SchemeSmokeBinding_deleted_cb(void*, short int, void*);
-C_externexport void SchemeSmokeBinding_callMethod_cb();
+C_externexport void SchemeSmokeBinding_callMethod_cb(void*, short int, short int,
+                                                     void*, void*, int);
 
 /*
  * This class will intercept all virtual method calls and will get
@@ -76,7 +86,7 @@ public:
     }
 
     bool callMethod(Smoke::Index method, void *obj,
-        Smoke::Stack /*args*/, bool /*isAbstract*/)
+        Smoke::Stack args, bool isAbstract)
     {
         Smoke::Method meth = smoke->methods[method];
         string name;
@@ -101,7 +111,8 @@ public:
         if (name == "protected mousePressEvent(QMouseEvent*)") {
             cout << className(meth.classId) << "(" << obj
                  << ")::" << name << endl;
-            SchemeSmokeBinding_callMethod_cb();
+            SchemeSmokeBinding_callMethod_cb(this, meth.classId, method,
+                                             obj, args, isAbstract);
         }
         return false;
     }
@@ -185,8 +196,6 @@ public:
 ;;;
 ;;; Stack
 ;;;
-
-(define-foreign-type Stack c-pointer)
 
 (define (make-stack size)
   (define %make-stack

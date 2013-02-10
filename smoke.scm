@@ -98,16 +98,18 @@ public:
 };
 <#
 
-(define delete-SchemeSmokeBinding
-  (foreign-lambda* void (((c-pointer "SchemeSmokeBinding") p))
-    "delete p;"))
+(define-class <SchemeSmokeBinding> (<c++-object>) ())
 
-(define (make-SchemeSmokeBinding smoke)
-  (let ((b ((foreign-lambda* c-pointer ((Smoke smoke))
-              "C_return(new SchemeSmokeBinding(smoke));")
-            (slot-value smoke 'this))))
-    (set-finalizer! b delete-SchemeSmokeBinding)
-    b))
+(define-method (destructor (this <SchemeSmokeBinding>))
+  ((foreign-lambda void "delete " (c-pointer "SchemeSmokeBinding"))
+   (slot-value this 'this)))
+
+(define-method (constructor (this <SchemeSmokeBinding>) initargs)
+  (set! (slot-value this 'this)
+        (apply
+         (foreign-lambda (c-pointer "SchemeSmokeBinding")
+                         "new SchemeSmokeBinding" Smoke)
+         initargs)))
 
 
 

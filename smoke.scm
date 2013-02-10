@@ -139,6 +139,15 @@
        thisobj)
    stack))
 
+(define (call-method/classid+methidx smoke classid methidx thisobj stack)
+  ((foreign-lambda* void
+       ((Smoke smoke) (ModuleIndex classId) (Index methodIdx)
+        (c-pointer thisobj) (Stack stack))
+     "Smoke::ClassFn fn = smoke->classes[classId->index].classFn;"
+     "Smoke::Method* m = smoke->methods + methodIdx;"
+     "fn(m->method, thisobj, (Smoke::Stack)stack);")
+   smoke classid methidx thisobj stack))
+
 
 #|
 #>

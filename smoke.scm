@@ -37,9 +37,18 @@
 
 (foreign-declare "#include <smoke.h>")
 
+(define-foreign-type Index short)
 
-(define-external (SchemeSmokeBinding_deleted_cb #;(c-string x))
-  void (print "SchemeSmokeBinding_deleted_cb was called"))
+
+(define (SchemeSmokeBinding-deleted this idx obj)
+  (printf "~A~A (~A)~%" "~"
+          (SchemeSmokeBinding-className this idx)
+          obj))
+
+(define-external (SchemeSmokeBinding_deleted_cb (c-pointer this)
+                                                (Index classIdx)
+                                                (c-pointer obj))
+  void (SchemeSmokeBinding-deleted this classIdx obj))
 
 (define-external (SchemeSmokeBinding_callMethod_cb #;(c-string x))
   void (print "SchemeSmokeBinding_callMethod_cb was called"))
@@ -50,7 +59,7 @@
 
 using namespace std;
 
-C_externexport void SchemeSmokeBinding_deleted_cb();
+C_externexport void SchemeSmokeBinding_deleted_cb(void*, short int, void*);
 C_externexport void SchemeSmokeBinding_callMethod_cb();
 
 /*
@@ -63,8 +72,7 @@ public:
     SchemeSmokeBinding(Smoke *s) : SmokeBinding(s) {}
 
     void deleted(Smoke::Index classId, void *obj) {
-        SchemeSmokeBinding_deleted_cb();
-        printf("~%s (%p)\n", className(classId), obj);
+        SchemeSmokeBinding_deleted_cb(this, classId, obj);
     }
 
     bool callMethod(Smoke::Index method, void *obj,
@@ -109,6 +117,13 @@ public:
 };
 <#
 
+(define (SchemeSmokeBinding-className obj idx)
+  ((foreign-lambda* c-string ((c-pointer obj) (Index idx))
+     "SchemeSmokeBinding *o = (SchemeSmokeBinding *)obj;"
+     "C_return(o->className(idx));")
+   obj idx))
+
+
 (define-generic (destructor this))
 
 (define-class <SchemeSmokeBinding> ()
@@ -127,8 +142,6 @@ public:
    (slot-value this 'this)))
 
 
-
-(define-foreign-type Index short)
 
 (define-class <Smoke> ()
   ((this)))

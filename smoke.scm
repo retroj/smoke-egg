@@ -38,6 +38,7 @@
 
 (foreign-declare "#include <smoke.h>")
 
+(define-foreign-type Index short)
 
 (define-class <Smoke> ()
   ((this)))
@@ -46,7 +47,7 @@
 
 (define-foreign-record-type ModuleIndex
   (Smoke smoke ModuleIndex-smoke)
-  (short index ModuleIndex-index))
+  (Index index ModuleIndex-index))
 
 (define (find-method smoke class method)
   (define %find-method

@@ -60,6 +60,18 @@
     (set-finalizer! m free)
     m))
 
+(define (find-class smoke class)
+  (define %find-class
+    (foreign-lambda* ModuleIndex
+        ((Smoke smoke) (c-string cname))
+      "Smoke::ModuleIndex classId = smoke->findClass(cname);"
+      "Smoke::ModuleIndex *c = (Smoke::ModuleIndex*)malloc(sizeof(Smoke::ModuleIndex));"
+      "memcpy(c, &classId, sizeof(Smoke::ModuleIndex));"
+      "C_return(c);"))
+  (let ((c (%find-class smoke class)))
+    (set-finalizer! c free)
+    c))
+
 
 #|
 #>

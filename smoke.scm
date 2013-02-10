@@ -38,11 +38,20 @@
 (foreign-declare "#include <smoke.h>")
 
 
+(define-external (SchemeSmokeBinding_deleted_cb #;(c-string x))
+  void (print "SchemeSmokeBinding_deleted_cb was called"))
+
+(define-external (SchemeSmokeBinding_callMethod_cb #;(c-string x))
+  void (print "SchemeSmokeBinding_callMethod_cb was called"))
+
 #>
 #include <iostream>
 #include <string>
 
 using namespace std;
+
+C_externexport void SchemeSmokeBinding_deleted_cb();
+C_externexport void SchemeSmokeBinding_callMethod_cb();
 
 /*
  * This class will intercept all virtual method calls and will get
@@ -54,6 +63,7 @@ public:
     SchemeSmokeBinding(Smoke *s) : SmokeBinding(s) {}
 
     void deleted(Smoke::Index classId, void *obj) {
+        SchemeSmokeBinding_deleted_cb();
         printf("~%s (%p)\n", className(classId), obj);
     }
 
@@ -80,9 +90,11 @@ public:
         }
         name += ")";
 
-        if (name == "protected mousePressEvent(QMouseEvent*)")
+        if (name == "protected mousePressEvent(QMouseEvent*)") {
             cout << className(meth.classId) << "(" << obj
                  << ")::" << name << endl;
+            SchemeSmokeBinding_callMethod_cb();
+        }
         return false;
     }
 
@@ -205,6 +217,25 @@ public:
 
 (define (call-method smoke methId thisobj stack)
   ((foreign-lambda* void
+       ((Smoke smoke) (ModuleIndex methId) (c-pointer thisobj) (Stack stack))
+     "Smoke::Index methodIdx;"
+     "if (methId->index > 0) {"
+     "    methodIdx = methId->smoke->methodMaps[methId->index].method;"
+     "} else {"
+     "    /* Resolve ambiguous method call */"
+     "}"
+     "Smoke::Method* m = methId->smoke->methods + methodIdx;"
+     "Smoke::ClassFn fn = methId->smoke->classes[m->classId].classFn;"
+     "fn(m->method, thisobj, (Smoke::Stack)stack);"
+     )
+   smoke methId
+   (if (eq? #f thisobj)
+       (foreign-value "((void*)0)" c-pointer)
+       thisobj)
+   stack))
+
+(define (call-method/safe smoke methId thisobj stack)
+  ((foreign-safe-lambda* void
        ((Smoke smoke) (ModuleIndex methId) (c-pointer thisobj) (Stack stack))
      "Smoke::Index methodIdx;"
      "if (methId->index > 0) {"

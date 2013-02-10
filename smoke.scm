@@ -30,6 +30,7 @@
 (import chicken scheme foreign)
 
 (use
+ srfi-69
  coops
  extras
  foreigners
@@ -112,10 +113,12 @@ public:
 };
 <#
 
+(declare (hide bindings))
+(define bindings (make-hash-table))
+
 (define (SchemeSmokeBinding-deleted this idx obj)
-  (printf "~A~A (~A)~%" "~"
-          (SchemeSmokeBinding-className this idx)
-          obj))
+  (let ((c (hash-table-ref bindings (pointer->address this))))
+    (deleted-callback c idx obj)))
 
 (define-external (SchemeSmokeBinding_deleted_cb
                   (c-pointer this) (Index classidx) (c-pointer obj))
@@ -124,7 +127,8 @@ public:
 
 (define (SchemeSmokeBinding-callMethod this classidx methidx
                                        obj stack abstract?)
-  (print "SchemeSmokeBinding_callMethod_cb was called"))
+  (let ((c (hash-table-ref bindings (pointer->address this))))
+    (methodcall-callback c classidx methidx obj stack abstract?)))
 
 (define-external (SchemeSmokeBinding_callMethod_cb
                   (c-pointer this) (Index classidx) (Index methidx)
@@ -141,6 +145,8 @@ public:
 
 
 (define-generic (destructor this))
+(define-generic (deleted-callback this))
+(define-generic (methodcall-callback this))
 
 (define-class <SchemeSmokeBinding> ()
   ((this)
@@ -151,11 +157,23 @@ public:
   (set! (slot-value this 'this)
         ((foreign-lambda (c-pointer "SchemeSmokeBinding")
                          "new SchemeSmokeBinding" Smoke)
-         (slot-value (slot-value this 'smoke) 'this))))
+         (slot-value (slot-value this 'smoke) 'this)))
+  (hash-table-set! bindings (pointer->address (slot-value this 'this)) this))
 
 (define-method (destructor (this <SchemeSmokeBinding>))
   ((foreign-lambda void "delete " (c-pointer "SchemeSmokeBinding"))
    (slot-value this 'this)))
+
+(define-method (deleted-callback (this <SchemeSmokeBinding>) idx obj)
+  (printf "~A~A (~A)~%" "~"
+          (SchemeSmokeBinding-className (slot-value this 'this) idx)
+          obj))
+
+(define-method (methodcall-callback (this <SchemeSmokeBinding>)
+                                    classidx methidx obj stack abstract?)
+  (printf "methodcall: ~A~%"
+          (SchemeSmokeBinding-className (slot-value this 'this) classidx)))
+
 
 
 

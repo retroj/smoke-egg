@@ -31,7 +31,6 @@
 
 (use
  coops
- cplusplus-object
  extras
  foreigners
  lolevel)
@@ -98,18 +97,22 @@ public:
 };
 <#
 
-(define-class <SchemeSmokeBinding> (<c++-object>) ())
+(define-generic (constructor this))
+(define-generic (destructor this))
 
-(define-method (destructor (this <SchemeSmokeBinding>))
-  ((foreign-lambda void "delete " (c-pointer "SchemeSmokeBinding"))
-   (slot-value this 'this)))
+(define-class <SchemeSmokeBinding> ()
+  ((this)))
 
-(define-method (constructor (this <SchemeSmokeBinding>) initargs)
+(define-method (constructor (this <SchemeSmokeBinding>) . initargs)
   (set! (slot-value this 'this)
         (apply
          (foreign-lambda (c-pointer "SchemeSmokeBinding")
                          "new SchemeSmokeBinding" Smoke)
          initargs)))
+
+(define-method (destructor (this <SchemeSmokeBinding>))
+  ((foreign-lambda void "delete " (c-pointer "SchemeSmokeBinding"))
+   (slot-value this 'this)))
 
 
 

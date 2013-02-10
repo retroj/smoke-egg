@@ -33,7 +33,8 @@
  coops
  cplusplus-object
  extras
- foreigners)
+ foreigners
+ lolevel)
 
 (foreign-declare "#include <smoke.h>")
 

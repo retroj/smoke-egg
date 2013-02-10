@@ -162,6 +162,11 @@ public:
     (set-finalizer! s free)
     s))
 
+(define stack-int
+  (foreign-lambda* int ((Stack stack) (size_t idx))
+    "Smoke::Stack s = (Smoke::Stack)stack;"
+    "C_return(s[idx].s_int);"))
+
 (define stack-pointer
   (foreign-lambda* c-pointer ((Stack stack) (size_t idx))
     "Smoke::Stack s = (Smoke::Stack)stack;"

@@ -45,6 +45,11 @@
 
 (define-foreign-type Smoke (instance Smoke <Smoke>))
 
+(define smoke-modulename
+  (foreign-lambda* c-string ((Smoke smoke))
+    "C_return(smoke->moduleName());"))
+
+
 (define-foreign-record-type ModuleIndex
   (Smoke smoke ModuleIndex-smoke)
   (Index index ModuleIndex-index))

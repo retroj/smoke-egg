@@ -41,33 +41,17 @@
 
 (define-foreign-type Stack c-pointer)
 
-
-(define (SchemeSmokeBinding-deleted this idx obj)
-  (printf "~A~A (~A)~%" "~"
-          (SchemeSmokeBinding-className this idx)
-          obj))
-
-(define-external (SchemeSmokeBinding_deleted_cb
-                  (c-pointer this) (Index classidx) (c-pointer obj))
-  void (SchemeSmokeBinding-deleted this classidx obj))
-
-
-(define (SchemeSmokeBinding-callMethod this classidx methidx
-                                       obj stack abstract?)
-  (print "SchemeSmokeBinding_callMethod_cb was called"))
-
-(define-external (SchemeSmokeBinding_callMethod_cb
-                  (c-pointer this) (Index classidx) (Index methidx)
-                  (c-pointer obj) (Stack stack) (bool abstract?))
-  void (SchemeSmokeBinding-callMethod this classidx methidx
-                                      obj stack abstract?))
-
 #>
 #include <iostream>
 #include <string>
 
 using namespace std;
 
+/* These forward declarations are redundant of what define-external
+ * produces, but no matter where the define-external calls are in the
+ * file, their declarations are generated after this code block, but
+ * we need them up here.
+ */
 C_externexport void SchemeSmokeBinding_deleted_cb(void*, short int, void*);
 C_externexport void SchemeSmokeBinding_callMethod_cb(void*, short int, short int,
                                                      void*, void*, int);
@@ -127,6 +111,27 @@ public:
     }
 };
 <#
+
+(define (SchemeSmokeBinding-deleted this idx obj)
+  (printf "~A~A (~A)~%" "~"
+          (SchemeSmokeBinding-className this idx)
+          obj))
+
+(define-external (SchemeSmokeBinding_deleted_cb
+                  (c-pointer this) (Index classidx) (c-pointer obj))
+  void (SchemeSmokeBinding-deleted this classidx obj))
+
+
+(define (SchemeSmokeBinding-callMethod this classidx methidx
+                                       obj stack abstract?)
+  (print "SchemeSmokeBinding_callMethod_cb was called"))
+
+(define-external (SchemeSmokeBinding_callMethod_cb
+                  (c-pointer this) (Index classidx) (Index methidx)
+                  (c-pointer obj) (Stack stack) (bool abstract?))
+  void (SchemeSmokeBinding-callMethod this classidx methidx
+                                      obj stack abstract?))
+
 
 (define (SchemeSmokeBinding-className obj idx)
   ((foreign-lambda* c-string ((c-pointer obj) (Index idx))

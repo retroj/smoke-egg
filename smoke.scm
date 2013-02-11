@@ -154,10 +154,10 @@ public:
         if (name == "protected mousePressEvent(QMouseEvent*)") {
             cout << className(meth.classId) << "(" << obj
                  << ")::" << name << endl;
-            if (can_callback) {
-                SchemeSmokeBinding_callMethod_cb(this, meth.classId, method,
-                                                 obj, args, isAbstract);
-            }
+        }
+        if (can_callback) {
+            SchemeSmokeBinding_callMethod_cb(this, meth.classId, method,
+                                             obj, args, isAbstract);
         }
         return false;
     }

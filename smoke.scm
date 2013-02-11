@@ -259,18 +259,23 @@ public:
 ;;; Call Method
 ;;;
 
+(define-syntax %call-method-form
+  (syntax-rules ()
+    ((%call-method-form sym)
+     (sym void
+          ((Smoke smoke) (ModuleIndex methId) (c-pointer thisobj) (Stack stack))
+          "Smoke::Index methodIdx;"
+          "if (methId->index > 0) {"
+          "    methodIdx = methId->smoke->methodMaps[methId->index].method;"
+          "} else {"
+          "    /* Resolve ambiguous method call */"
+          "}"
+          "Smoke::Method* m = methId->smoke->methods + methodIdx;"
+          "Smoke::ClassFn fn = methId->smoke->classes[m->classId].classFn;"
+          "fn(m->method, thisobj, (Smoke::Stack)stack);"))))
+
 (define (call-method smoke methId thisobj stack)
-  ((foreign-lambda* void
-       ((Smoke smoke) (ModuleIndex methId) (c-pointer thisobj) (Stack stack))
-     "Smoke::Index methodIdx;"
-     "if (methId->index > 0) {"
-     "    methodIdx = methId->smoke->methodMaps[methId->index].method;"
-     "} else {"
-     "    /* Resolve ambiguous method call */"
-     "}"
-     "Smoke::Method* m = methId->smoke->methods + methodIdx;"
-     "Smoke::ClassFn fn = methId->smoke->classes[m->classId].classFn;"
-     "fn(m->method, thisobj, (Smoke::Stack)stack);")
+  ((%call-method-form foreign-lambda*)
    smoke methId
    (if (eq? #f thisobj)
        (foreign-value "((void*)0)" c-pointer)
@@ -278,17 +283,7 @@ public:
    stack))
 
 (define (call-method/safe smoke methId thisobj stack)
-  ((foreign-safe-lambda* void
-       ((Smoke smoke) (ModuleIndex methId) (c-pointer thisobj) (Stack stack))
-     "Smoke::Index methodIdx;"
-     "if (methId->index > 0) {"
-     "    methodIdx = methId->smoke->methodMaps[methId->index].method;"
-     "} else {"
-     "    /* Resolve ambiguous method call */"
-     "}"
-     "Smoke::Method* m = methId->smoke->methods + methodIdx;"
-     "Smoke::ClassFn fn = methId->smoke->classes[m->classId].classFn;"
-     "fn(m->method, thisobj, (Smoke::Stack)stack);")
+  ((%call-method-form foreign-safe-lambda*)
    smoke methId
    (if (eq? #f thisobj)
        (foreign-value "((void*)0)" c-pointer)

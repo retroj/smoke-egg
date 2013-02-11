@@ -118,7 +118,11 @@ C_externexport void SchemeSmokeBinding_callMethod_cb(void*, short int, short int
 class SchemeSmokeBinding : public SmokeBinding
 {
 public:
-    SchemeSmokeBinding(Smoke *s) : SmokeBinding(s) {}
+    bool can_callback;
+
+    SchemeSmokeBinding(Smoke *s) : SmokeBinding(s) {
+        can_callback = 0;
+    }
 
     void deleted(Smoke::Index classId, void *obj) {
         SchemeSmokeBinding_deleted_cb(this, classId, obj);
@@ -150,8 +154,10 @@ public:
         if (name == "protected mousePressEvent(QMouseEvent*)") {
             cout << className(meth.classId) << "(" << obj
                  << ")::" << name << endl;
-            SchemeSmokeBinding_callMethod_cb(this, meth.classId, method,
-                                             obj, args, isAbstract);
+            if (can_callback) {
+                SchemeSmokeBinding_callMethod_cb(this, meth.classId, method,
+                                                 obj, args, isAbstract);
+            }
         }
         return false;
     }
@@ -208,6 +214,9 @@ public:
   ((this)
    (smoke initform: (error "'smoke field required"))))
 
+(define-foreign-type SchemeSmokeBinding
+  (instance SchemeSmokeBinding <SchemeSmokeBinding>))
+
 (define-method (initialize-instance (this <SchemeSmokeBinding>))
   (call-next-method)
   (set! (slot-value this 'this)
@@ -261,9 +270,11 @@ public:
 
 (define-syntax %call-method-form
   (syntax-rules ()
-    ((%call-method-form sym)
+    ((%call-method-form sym can-callback)
      (sym void
-          ((Smoke smoke) (ModuleIndex methId) (c-pointer thisobj) (Stack stack))
+          ((SchemeSmokeBinding binding) (ModuleIndex methId)
+           (c-pointer thisobj) (Stack stack))
+          "binding->can_callback = " can-callback ";"
           "Smoke::Index methodIdx;"
           "if (methId->index > 0) {"
           "    methodIdx = methId->smoke->methodMaps[methId->index].method;"
@@ -272,19 +283,20 @@ public:
           "}"
           "Smoke::Method* m = methId->smoke->methods + methodIdx;"
           "Smoke::ClassFn fn = methId->smoke->classes[m->classId].classFn;"
-          "fn(m->method, thisobj, (Smoke::Stack)stack);"))))
+          "fn(m->method, thisobj, (Smoke::Stack)stack);"
+          "binding->can_callback = 0;"))))
 
-(define (call-method smoke methId thisobj stack)
-  ((%call-method-form foreign-lambda*)
-   smoke methId
+(define (call-method binding methId thisobj stack)
+  ((%call-method-form foreign-lambda* "0")
+   binding methId
    (if (eq? #f thisobj)
        (foreign-value "((void*)0)" c-pointer)
        thisobj)
    stack))
 
-(define (call-method/safe smoke methId thisobj stack)
-  ((%call-method-form foreign-safe-lambda*)
-   smoke methId
+(define (call-method/safe binding methId thisobj stack)
+  ((%call-method-form foreign-safe-lambda* "1")
+   binding methId
    (if (eq? #f thisobj)
        (foreign-value "((void*)0)" c-pointer)
        thisobj)

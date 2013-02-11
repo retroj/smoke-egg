@@ -40,8 +40,6 @@
 
 (define-foreign-type Index short)
 
-(define-foreign-type Stack c-pointer)
-
 (define-class <Smoke> ()
   ((this)))
 
@@ -54,6 +52,48 @@
 (define-foreign-record-type ModuleIndex
   (Smoke smoke ModuleIndex-smoke)
   (Index index ModuleIndex-index))
+
+
+;;;
+;;; Stack
+;;;
+
+(define-foreign-type Stack c-pointer)
+
+(define (make-stack size)
+  (define %make-stack
+    (foreign-lambda* Stack ((size_t size))
+      "Smoke::StackItem *s = (Smoke::StackItem*)malloc(size * sizeof(Smoke::StackItem));"
+      "C_return(s);"))
+  (let ((s (%make-stack size)))
+    (set-finalizer! s free)
+    s))
+
+(define stack-int
+  (foreign-lambda* int ((Stack stack) (size_t idx))
+    "Smoke::Stack s = (Smoke::Stack)stack;"
+    "C_return(s[idx].s_int);"))
+
+(define stack-pointer
+  (foreign-lambda* c-pointer ((Stack stack) (size_t idx))
+    "Smoke::Stack s = (Smoke::Stack)stack;"
+    "C_return(s[idx].s_voidp);"))
+
+(define (stack-set-int-pointer! stack idx n)
+  (let-location ((n int n))
+    (stack-set-pointer! stack idx (location n))))
+
+(define stack-set-pointer!
+  (foreign-lambda* void
+      ((Stack stack) (size_t idx) (c-pointer p))
+    "Smoke::Stack s = (Smoke::Stack)stack;"
+    "s[idx].s_voidp = p;"))
+
+(define stack-set-unsigned-long!
+  (foreign-lambda* void
+      ((Stack stack) (size_t idx) (unsigned-long l))
+    "Smoke::Stack s = (Smoke::Stack)stack;"
+    "s[idx].s_ulong = l;"))
 
 
 #>
@@ -213,46 +253,6 @@ public:
   (let ((m (%find-method (slot-value this 'smoke) cname mname)))
     (set-finalizer! m free)
     m))
-
-
-;;;
-;;; Stack
-;;;
-
-(define (make-stack size)
-  (define %make-stack
-    (foreign-lambda* Stack ((size_t size))
-      "Smoke::StackItem *s = (Smoke::StackItem*)malloc(size * sizeof(Smoke::StackItem));"
-      "C_return(s);"))
-  (let ((s (%make-stack size)))
-    (set-finalizer! s free)
-    s))
-
-(define stack-int
-  (foreign-lambda* int ((Stack stack) (size_t idx))
-    "Smoke::Stack s = (Smoke::Stack)stack;"
-    "C_return(s[idx].s_int);"))
-
-(define stack-pointer
-  (foreign-lambda* c-pointer ((Stack stack) (size_t idx))
-    "Smoke::Stack s = (Smoke::Stack)stack;"
-    "C_return(s[idx].s_voidp);"))
-
-(define (stack-set-int-pointer! stack idx n)
-  (let-location ((n int n))
-    (stack-set-pointer! stack idx (location n))))
-
-(define stack-set-pointer!
-  (foreign-lambda* void
-      ((Stack stack) (size_t idx) (c-pointer p))
-    "Smoke::Stack s = (Smoke::Stack)stack;"
-    "s[idx].s_voidp = p;"))
-
-(define stack-set-unsigned-long!
-  (foreign-lambda* void
-      ((Stack stack) (size_t idx) (unsigned-long l))
-    "Smoke::Stack s = (Smoke::Stack)stack;"
-    "s[idx].s_ulong = l;"))
 
 
 ;;;

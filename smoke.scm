@@ -138,7 +138,7 @@ public:
 (define (SchemeSmokeBinding-callMethod this classidx methidx
                                        obj stack abstract?)
   (let ((c (hash-table-ref bindings (pointer->address this))))
-    (methodcall-callback c classidx methidx obj stack abstract?)))
+    (handle-callback c classidx methidx obj stack abstract?)))
 
 (define-external (SchemeSmokeBinding_callMethod_cb
                   (c-pointer this) (Index classidx) (Index methidx)
@@ -156,7 +156,7 @@ public:
 
 (define-generic (destructor this))
 (define-generic (deleted-callback this))
-(define-generic (methodcall-callback this))
+(define-generic (handle-callback this))
 (define-generic (find-class this))
 (define-generic (find-method this))
 
@@ -181,8 +181,8 @@ public:
           (SchemeSmokeBinding-className (slot-value this 'this) idx)
           obj))
 
-(define-method (methodcall-callback (this <SchemeSmokeBinding>)
-                                    classidx methidx obj stack abstract?)
+(define-method (handle-callback (this <SchemeSmokeBinding>)
+                                classidx methidx obj stack abstract?)
   (printf "methodcall: ~A~%"
           (SchemeSmokeBinding-className (slot-value this 'this) classidx)))
 

@@ -42,6 +42,16 @@
 
 (define-foreign-type Stack c-pointer)
 
+(define-class <Smoke> ()
+  ((this)))
+
+(define-foreign-type Smoke (instance Smoke <Smoke>))
+
+(define-foreign-record-type ModuleIndex
+  (Smoke smoke ModuleIndex-smoke)
+  (Index index ModuleIndex-index))
+
+
 #>
 #include <iostream>
 #include <string>
@@ -159,7 +169,7 @@ public:
   (set! (slot-value this 'this)
         ((foreign-lambda (c-pointer "SchemeSmokeBinding")
                          "new SchemeSmokeBinding" Smoke)
-         (slot-value (slot-value this 'smoke) 'this)))
+         (slot-value this 'smoke)))
   (hash-table-set! bindings (pointer->address (slot-value this 'this)) this))
 
 (define-method (destructor (this <SchemeSmokeBinding>))
@@ -185,19 +195,10 @@ public:
 
 
 
-(define-class <Smoke> ()
-  ((this)))
-
-(define-foreign-type Smoke (instance Smoke <Smoke>))
-
 (define smoke-modulename
   (foreign-lambda* c-string ((Smoke smoke))
     "C_return(smoke->moduleName());"))
 
-
-(define-foreign-record-type ModuleIndex
-  (Smoke smoke ModuleIndex-smoke)
-  (Index index ModuleIndex-index))
 
 (define (smoke-find-method smoke class method)
   (define %find-method

@@ -271,8 +271,7 @@ public:
      "}"
      "Smoke::Method* m = methId->smoke->methods + methodIdx;"
      "Smoke::ClassFn fn = methId->smoke->classes[m->classId].classFn;"
-     "fn(m->method, thisobj, (Smoke::Stack)stack);"
-     )
+     "fn(m->method, thisobj, (Smoke::Stack)stack);")
    smoke methId
    (if (eq? #f thisobj)
        (foreign-value "((void*)0)" c-pointer)
@@ -290,8 +289,7 @@ public:
      "}"
      "Smoke::Method* m = methId->smoke->methods + methodIdx;"
      "Smoke::ClassFn fn = methId->smoke->classes[m->classId].classFn;"
-     "fn(m->method, thisobj, (Smoke::Stack)stack);"
-     )
+     "fn(m->method, thisobj, (Smoke::Stack)stack);")
    smoke methId
    (if (eq? #f thisobj)
        (foreign-value "((void*)0)" c-pointer)

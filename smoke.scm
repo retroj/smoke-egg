@@ -187,7 +187,16 @@ public:
           (SchemeSmokeBinding-className (slot-value this 'this) classidx)))
 
 (define-method (find-class (this <SchemeSmokeBinding>) cname)
-  (smoke-find-class (slot-value this 'smoke) cname))
+  (define %find-class
+    (foreign-lambda* ModuleIndex
+        ((Smoke smoke) (c-string cname))
+      "Smoke::ModuleIndex classId = smoke->findClass(cname);"
+      "Smoke::ModuleIndex *c = (Smoke::ModuleIndex*)malloc(sizeof(Smoke::ModuleIndex));"
+      "memcpy(c, &classId, sizeof(Smoke::ModuleIndex));"
+      "C_return(c);"))
+  (let ((c (%find-class (slot-value this 'smoke) cname)))
+    (set-finalizer! c free)
+    c))
 
 (define-method (find-method (this <SchemeSmokeBinding>) cname mname)
   (smoke-find-method (slot-value this 'smoke) cname mname))
@@ -211,18 +220,6 @@ public:
   (let ((m (%find-method smoke class method)))
     (set-finalizer! m free)
     m))
-
-(define (smoke-find-class smoke class)
-  (define %find-class
-    (foreign-lambda* ModuleIndex
-        ((Smoke smoke) (c-string cname))
-      "Smoke::ModuleIndex classId = smoke->findClass(cname);"
-      "Smoke::ModuleIndex *c = (Smoke::ModuleIndex*)malloc(sizeof(Smoke::ModuleIndex));"
-      "memcpy(c, &classId, sizeof(Smoke::ModuleIndex));"
-      "C_return(c);"))
-  (let ((c (%find-class smoke class)))
-    (set-finalizer! c free)
-    c))
 
 
 ;;;

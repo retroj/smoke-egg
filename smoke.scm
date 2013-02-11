@@ -304,7 +304,7 @@ public:
        thisobj)
    stack))
 
-(define (call-method/safe binding methId thisobj stack)
+(define (call-method-with-callbacks binding methId thisobj stack)
   ((%call-method-form foreign-safe-lambda* "1")
    binding methId
    (if (eq? #f thisobj)

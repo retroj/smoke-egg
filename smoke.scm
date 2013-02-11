@@ -47,6 +47,10 @@
 
 (define-foreign-type Smoke (instance Smoke <Smoke>))
 
+(define smoke-modulename
+  (foreign-lambda* c-string ((Smoke smoke))
+    "C_return(smoke->moduleName());"))
+
 (define-foreign-record-type ModuleIndex
   (Smoke smoke ModuleIndex-smoke)
   (Index index ModuleIndex-index))
@@ -209,13 +213,6 @@ public:
   (let ((m (%find-method (slot-value this 'smoke) cname mname)))
     (set-finalizer! m free)
     m))
-
-
-
-
-(define smoke-modulename
-  (foreign-lambda* c-string ((Smoke smoke))
-    "C_return(smoke->moduleName());"))
 
 
 ;;;

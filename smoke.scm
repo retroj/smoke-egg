@@ -209,6 +209,7 @@ public:
 (define-generic (handle-callback this))
 (define-generic (find-class this))
 (define-generic (find-method this))
+(define-generic (instantiate this))
 
 (define-class <SchemeSmokeBinding> ()
   ((this)
@@ -262,6 +263,15 @@ public:
   (let ((m (%find-method (slot-value this 'smoke) cname mname)))
     (set-finalizer! m free)
     m))
+
+(define-method (instantiate (this <SchemeSmokeBinding>) cname mname stack)
+  (let ((cid (find-class this cname))
+        (mid (find-method this cname mname)))
+    (call-method this mid #f stack)
+    (let ((o (stack-pointer stack 0)))
+      (stack-set-pointer! stack 1 (slot-value this 'this))
+      (call-method/classid+methidx this cid 0 o stack)
+      o)))
 
 
 ;;;

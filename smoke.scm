@@ -147,6 +147,8 @@ public:
 (define-generic (destructor this))
 (define-generic (deleted-callback this))
 (define-generic (methodcall-callback this))
+(define-generic (find-class this))
+(define-generic (find-method this))
 
 (define-class <SchemeSmokeBinding> ()
   ((this)
@@ -174,6 +176,12 @@ public:
   (printf "methodcall: ~A~%"
           (SchemeSmokeBinding-className (slot-value this 'this) classidx)))
 
+(define-method (find-class (this <SchemeSmokeBinding>) cname)
+  (smoke-find-class (slot-value this 'smoke) cname))
+
+(define-method (find-method (this <SchemeSmokeBinding>) cname mname)
+  (smoke-find-method (slot-value this 'smoke) cname mname))
+
 
 
 
@@ -191,7 +199,7 @@ public:
   (Smoke smoke ModuleIndex-smoke)
   (Index index ModuleIndex-index))
 
-(define (find-method smoke class method)
+(define (smoke-find-method smoke class method)
   (define %find-method
     (foreign-lambda* ModuleIndex
         ((Smoke smoke) (c-string cname) (c-string mname))
@@ -203,7 +211,7 @@ public:
     (set-finalizer! m free)
     m))
 
-(define (find-class smoke class)
+(define (smoke-find-class smoke class)
   (define %find-class
     (foreign-lambda* ModuleIndex
         ((Smoke smoke) (c-string cname))

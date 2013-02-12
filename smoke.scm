@@ -198,12 +198,11 @@
 
 
 #>
-/* These forward declarations are redundant of what define-external
- * produces, but no matter where the define-external calls are in the
- * file, their declarations are generated after this code block, but
- * we need them up here.
+/* This forward declaration is redundant of what define-external
+ * produces, but no matter where the define-external call is in the
+ * file, its declaration is generated after this code block, but
+ * we need it up here.
  */
-C_externexport void SchemeSmokeBinding_deleted_cb(void*, short int, void*);
 C_externexport void SchemeSmokeBinding_callMethod_cb(void*, short int, void*, void*, int);
 
 /*
@@ -219,9 +218,7 @@ public:
         can_callback = 0;
     }
 
-    void deleted(Smoke::Index classId, void *obj) {
-        SchemeSmokeBinding_deleted_cb(this, classId, obj);
-    }
+    void deleted(Smoke::Index classId, void *obj) {}
 
     bool callMethod(Smoke::Index method, void *obj,
         Smoke::Stack args, bool isAbstract)
@@ -245,15 +242,6 @@ public:
 
 (declare (hide bindings))
 (define bindings (make-hash-table))
-
-(define (SchemeSmokeBinding-deleted this idx obj)
-  (let ((c (hash-table-ref bindings (pointer->address this))))
-    (deleted-callback c idx obj)))
-
-(define-external (SchemeSmokeBinding_deleted_cb
-                  (c-pointer this) (Index classidx) (c-pointer obj))
-  void (SchemeSmokeBinding-deleted this classidx obj))
-
 
 (define (SchemeSmokeBinding-callMethod this methidx obj stack abstract?)
   (let ((c (hash-table-ref bindings (pointer->address this))))
@@ -285,7 +273,6 @@ public:
      eventmap event (lambda (lst) (cons handler lst)))))
 
 (define-generic (destructor this))
-(define-generic (deleted-callback this))
 (define-generic (handle-callback this))
 (define-generic (find-class this))
 (define-generic (find-method this))
@@ -311,11 +298,6 @@ public:
 (define-method (destructor (this <SchemeSmokeBinding>))
   ((foreign-lambda void "delete " (c-pointer "SchemeSmokeBinding"))
    (slot-value this 'this)))
-
-(define-method (deleted-callback (this <SchemeSmokeBinding>) idx obj)
-  (printf "~A~A (~A)~%" "~"
-          (SchemeSmokeBinding-className (slot-value this 'this) idx)
-          obj))
 
 (define-method (handle-callback (this <SchemeSmokeBinding>) methidx obj stack abstract?)
   (and-let* ((eventmap (hash-table-ref/default event-handlers obj #f))

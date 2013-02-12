@@ -228,6 +228,18 @@ public:
      "C_return(o->className(idx));")
    obj idx))
 
+(define event-handlers (make-hash-table))
+
+(define (add-event-map obj event)
+  (let ((eventmap (make-hash-table initial: '())))
+    (hash-table-set! event-handlers obj eventmap)
+    eventmap))
+
+(define (add-event-handler obj event handler)
+  (let ((eventmap (or (hash-table-ref/default event-handlers obj #f)
+                      (add-event-map obj event))))
+    (hash-table-update!
+     eventmap event (lambda (lst) (cons handler lst)))))
 
 (define-generic (destructor this))
 (define-generic (deleted-callback this))
@@ -263,6 +275,71 @@ public:
           obj))
 
 (define-method (handle-callback (this <SchemeSmokeBinding>) methidx obj stack abstract?)
+  (and-let* ((eventmap (hash-table-ref/default event-handlers obj #f))
+             (smoke (slot-value this 'smoke))
+             (meth ((foreign-lambda* c-pointer ((Smoke smoke) (Index methidx))
+                      "Smoke::Method m = smoke->methods[methidx];"
+                      "C_return((void*)&m);")
+                    smoke methidx))
+             (name ((foreign-lambda* c-string ((Smoke smoke) (c-pointer meth))
+                      "Smoke::Method *m = (Smoke::Method*)meth;"
+                      "C_return(smoke->methodNames[m->name]);")
+                    smoke meth))
+             (handlers (hash-table-ref/default eventmap name #f)))
+    (for-each
+     (lambda (handler)
+       (handler this methidx obj stack abstract?))
+     handlers)))
+
+(define-method (find-class (this <SchemeSmokeBinding>) cname)
+  (define %find-class
+    (foreign-lambda* ModuleIndex
+        ((Smoke smoke) (c-string cname))
+      "Smoke::ModuleIndex classId = smoke->findClass(cname);"
+      "Smoke::ModuleIndex *c = (Smoke::ModuleIndex*)malloc(sizeof(Smoke::ModuleIndex));"
+      "memcpy(c, &classId, sizeof(Smoke::ModuleIndex));"
+      "C_return(c);"))
+  (let ((c (%find-class (slot-value this 'smoke) cname)))
+    (set-finalizer! c free)
+    c))
+
+(define-method (find-method (this <SchemeSmokeBinding>) cname mname)
+  (define %find-method
+    (foreign-lambda* ModuleIndex
+        ((Smoke smoke) (c-string cname) (c-string mname))
+      "Smoke::ModuleIndex methId = smoke->findMethod(cname, mname);"
+      "Smoke::ModuleIndex *m = (Smoke::ModuleIndex*)malloc(sizeof(Smoke::ModuleIndex));"
+      "memcpy(m, &methId, sizeof(Smoke::ModuleIndex));"
+      "C_return(m);"))
+  (let ((m (%find-method (slot-value this 'smoke) cname mname)))
+    (set-finalizer! m free)
+    m))
+
+(define (get-stack/create this #!optional (minsize 1))
+  (let ((stack (slot-value this 'stack)))
+    (unless (and stack (>= (smoke-stack-size stack) minsize))
+      (set! (slot-value this 'stack)
+            (make-smoke-stack
+             (max minsize (slot-value this 'initial-stack-size)))))
+    (slot-value this 'stack)))
+
+(define-method (instantiate (this <SchemeSmokeBinding>) cname mname
+                            #!optional (args '()))
+  (let ((cid (find-class this cname))
+        (mid (find-method this cname mname))
+        (stack (if (smoke-stack? args)
+                   args
+                   (smoke-stack-populate!
+                    (get-stack/create this (max 2 (length args)))
+                    args))))
+    (call-method this mid #f stack)
+    (let* ((o (smoke-stack-pointer stack 0)))
+      (smoke-stack-set-pointer! stack 1 (slot-value this 'this))
+      (call-method/classid+methidx this cid 0 o stack)
+      o)))
+
+
+(define (click-test-handler this methidx obj stack abstract?)
   (let* ((smoke (slot-value this 'smoke))
          (meth ((foreign-lambda* c-pointer ((Smoke smoke) (Index methidx))
                   "Smoke::Method m = smoke->methods[methidx];"
@@ -313,53 +390,6 @@ public:
                 (SchemeSmokeBinding-className (slot-value this 'this) classidx)
                 obj
                 name)))))
-
-(define-method (find-class (this <SchemeSmokeBinding>) cname)
-  (define %find-class
-    (foreign-lambda* ModuleIndex
-        ((Smoke smoke) (c-string cname))
-      "Smoke::ModuleIndex classId = smoke->findClass(cname);"
-      "Smoke::ModuleIndex *c = (Smoke::ModuleIndex*)malloc(sizeof(Smoke::ModuleIndex));"
-      "memcpy(c, &classId, sizeof(Smoke::ModuleIndex));"
-      "C_return(c);"))
-  (let ((c (%find-class (slot-value this 'smoke) cname)))
-    (set-finalizer! c free)
-    c))
-
-(define-method (find-method (this <SchemeSmokeBinding>) cname mname)
-  (define %find-method
-    (foreign-lambda* ModuleIndex
-        ((Smoke smoke) (c-string cname) (c-string mname))
-      "Smoke::ModuleIndex methId = smoke->findMethod(cname, mname);"
-      "Smoke::ModuleIndex *m = (Smoke::ModuleIndex*)malloc(sizeof(Smoke::ModuleIndex));"
-      "memcpy(m, &methId, sizeof(Smoke::ModuleIndex));"
-      "C_return(m);"))
-  (let ((m (%find-method (slot-value this 'smoke) cname mname)))
-    (set-finalizer! m free)
-    m))
-
-(define (get-stack/create this #!optional (minsize 1))
-  (let ((stack (slot-value this 'stack)))
-    (unless (and stack (>= (smoke-stack-size stack) minsize))
-      (set! (slot-value this 'stack)
-            (make-smoke-stack
-             (max minsize (slot-value this 'initial-stack-size)))))
-    (slot-value this 'stack)))
-
-(define-method (instantiate (this <SchemeSmokeBinding>) cname mname
-                            #!optional (args '()))
-  (let ((cid (find-class this cname))
-        (mid (find-method this cname mname))
-        (stack (if (smoke-stack? args)
-                   args
-                   (smoke-stack-populate!
-                    (get-stack/create this (max 2 (length args)))
-                    args))))
-    (call-method this mid #f stack)
-    (let* ((o (smoke-stack-pointer stack 0)))
-      (smoke-stack-set-pointer! stack 1 (slot-value this 'this))
-      (call-method/classid+methidx this cid 0 o stack)
-      o)))
 
 
 ;;;

@@ -31,7 +31,6 @@
 
 (use
  srfi-4
- (only srfi-13 string-join)
  srfi-69
  coops
  extras

@@ -34,6 +34,7 @@
  coops
  extras
  foreigners
+ (only list-utils assoc-def)
  lolevel)
 
 (foreign-declare "#include <smoke.h>")
@@ -60,40 +61,95 @@
 
 (define-foreign-type Stack c-pointer)
 
-(define (make-stack size)
+(define-record smoke-stack
+  stack
+  size)
+
+(define %make-smoke-stack make-smoke-stack)
+
+(define (make-smoke-stack size)
   (define %make-stack
     (foreign-lambda* Stack ((size_t size))
       "Smoke::StackItem *s = (Smoke::StackItem*)malloc(size * sizeof(Smoke::StackItem));"
       "C_return(s);"))
   (let ((s (%make-stack size)))
     (set-finalizer! s free)
-    s))
+    (%make-smoke-stack s size)))
 
-(define stack-int
+(define %smoke-stack-int
   (foreign-lambda* int ((Stack stack) (size_t idx))
     "Smoke::Stack s = (Smoke::Stack)stack;"
     "C_return(s[idx].s_int);"))
 
-(define stack-pointer
+(define (smoke-stack-int stack idx)
+  (%smoke-stack-int (smoke-stack-stack stack) idx))
+
+(define %smoke-stack-pointer
   (foreign-lambda* c-pointer ((Stack stack) (size_t idx))
     "Smoke::Stack s = (Smoke::Stack)stack;"
     "C_return(s[idx].s_voidp);"))
 
-(define (stack-set-int-pointer! stack idx n)
-  (let-location ((n int n))
-    (stack-set-pointer! stack idx (location n))))
+(define (smoke-stack-pointer stack idx)
+  (%smoke-stack-pointer  (smoke-stack-stack stack) idx))
 
-(define stack-set-pointer!
+(define (%smoke-stack-set-int-pointer! stack idx n)
+  (let-location ((n int n))
+    (%smoke-stack-set-pointer! stack idx (location n))))
+
+(define (smoke-stack-set-int-pointer! stack idx n)
+  (%smoke-stack-set-int-pointer! (smoke-stack-stack stack) idx n))
+
+(define %smoke-stack-set-pointer!
   (foreign-lambda* void
       ((Stack stack) (size_t idx) (c-pointer p))
     "Smoke::Stack s = (Smoke::Stack)stack;"
     "s[idx].s_voidp = p;"))
 
-(define stack-set-unsigned-long!
+(define (smoke-stack-set-pointer! stack idx p)
+  (%smoke-stack-set-pointer! (smoke-stack-stack stack) idx p))
+
+(define %smoke-stack-set-unsigned-long!
   (foreign-lambda* void
-      ((Stack stack) (size_t idx) (unsigned-long l))
+      ((Stack stack) (size_t idx) (unsigned-long n))
     "Smoke::Stack s = (Smoke::Stack)stack;"
-    "s[idx].s_ulong = l;"))
+    "s[idx].s_ulong = n;"))
+
+(define (smoke-stack-set-unsigned-long! stack idx n)
+  (%smoke-stack-set-unsigned-long! (smoke-stack-stack stack) idx n))
+
+(define smoke-stack-setters
+  `((c-pointer         . ,%smoke-stack-set-pointer!)
+    ((c-pointer int)   . ,%smoke-stack-set-int-pointer!)
+    ;; (bool           . )
+    ;; (char           . )
+    ;; (unsigned-char  . )
+    ;; (short          . )
+    ;; (unsigned-short . )
+    ;; (int            . )
+    ;; (unsigned-int   . )
+    ;; (long           . )
+    (unsigned-long     . ,%smoke-stack-set-unsigned-long!)
+    ;; (float          . )
+    ;; (double         . )
+    ))
+
+(define (smoke-stack-populate! stack vals)
+  (let ((s (smoke-stack-stack stack))
+        (nvals (length vals))
+        (nstack (- (smoke-stack-size stack) 1))
+        (i 1))
+    (when (> nvals nstack)
+      (error (sprintf "smoke-stack not big enough: size ~A, need ~A"
+                      nstack nvals)))
+    (for-each
+     (lambda (x)
+       (let* ((type (car x))
+              (val (cadr x))
+              (setter (cdr (assoc-def type smoke-stack-setters))))
+         (setter s i val)
+         (set! i (+ 1 i))))
+     vals)
+    stack))
 
 
 #>
@@ -268,8 +324,8 @@ public:
   (let ((cid (find-class this cname))
         (mid (find-method this cname mname)))
     (call-method this mid #f stack)
-    (let ((o (stack-pointer stack 0)))
-      (stack-set-pointer! stack 1 (slot-value this 'this))
+    (let ((o (smoke-stack-pointer stack 0)))
+      (smoke-stack-set-pointer! stack 1 (slot-value this 'this))
       (call-method/classid+methidx this cid 0 o stack)
       o)))
 
@@ -302,7 +358,7 @@ public:
    (if (eq? #f thisobj)
        (foreign-value "((void*)0)" c-pointer)
        thisobj)
-   stack))
+   (smoke-stack-stack stack)))
 
 (define (call-method-with-callbacks binding methId thisobj stack)
   ((%call-method-form foreign-safe-lambda* "1")
@@ -310,7 +366,7 @@ public:
    (if (eq? #f thisobj)
        (foreign-value "((void*)0)" c-pointer)
        thisobj)
-   stack))
+   (smoke-stack-stack stack)))
 
 (define (call-method/classid+methidx binding classid methidx thisobj stack)
   ((foreign-lambda* void
@@ -319,6 +375,6 @@ public:
      "Smoke::ClassFn fn = classId->smoke->classes[classId->index].classFn;"
      "Smoke::Method* m = classId->smoke->methods + methodIdx;"
      "fn(m->method, thisobj, (Smoke::Stack)stack);")
-   binding classid methidx thisobj stack))
+   binding classid methidx thisobj (smoke-stack-stack stack)))
 
 )

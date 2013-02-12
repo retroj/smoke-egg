@@ -161,8 +161,7 @@
  * we need them up here.
  */
 C_externexport void SchemeSmokeBinding_deleted_cb(void*, short int, void*);
-C_externexport void SchemeSmokeBinding_callMethod_cb(void*, short int, short int,
-                                                     void*, void*, int);
+C_externexport void SchemeSmokeBinding_callMethod_cb(void*, short int, void*, void*, int);
 
 /*
  * This class will intercept all virtual method calls and will get
@@ -184,10 +183,8 @@ public:
     bool callMethod(Smoke::Index method, void *obj,
         Smoke::Stack args, bool isAbstract)
     {
-        Smoke::Method meth = smoke->methods[method];
         if (can_callback) {
-            SchemeSmokeBinding_callMethod_cb(this, meth.classId, method,
-                                             obj, args, isAbstract);
+            SchemeSmokeBinding_callMethod_cb(this, method, obj, args, isAbstract);
         }
         return false;
     }
@@ -215,16 +212,14 @@ public:
   void (SchemeSmokeBinding-deleted this classidx obj))
 
 
-(define (SchemeSmokeBinding-callMethod this classidx methidx
-                                       obj stack abstract?)
+(define (SchemeSmokeBinding-callMethod this methidx obj stack abstract?)
   (let ((c (hash-table-ref bindings (pointer->address this))))
-    (handle-callback c classidx methidx obj stack abstract?)))
+    (handle-callback c methidx obj stack abstract?)))
 
 (define-external (SchemeSmokeBinding_callMethod_cb
-                  (c-pointer this) (Index classidx) (Index methidx)
-                  (c-pointer obj) (Stack stack) (bool abstract?))
-  void (SchemeSmokeBinding-callMethod this classidx methidx
-                                      obj stack abstract?))
+                  (c-pointer this) (Index methidx) (c-pointer obj)
+                  (Stack stack) (bool abstract?))
+  void (SchemeSmokeBinding-callMethod this methidx obj stack abstract?))
 
 
 (define (SchemeSmokeBinding-className obj idx)
@@ -267,13 +262,16 @@ public:
           (SchemeSmokeBinding-className (slot-value this 'this) idx)
           obj))
 
-(define-method (handle-callback (this <SchemeSmokeBinding>)
-                                classidx methidx obj stack abstract?)
+(define-method (handle-callback (this <SchemeSmokeBinding>) methidx obj stack abstract?)
   (let* ((smoke (slot-value this 'smoke))
          (meth ((foreign-lambda* c-pointer ((Smoke smoke) (Index methidx))
                   "Smoke::Method m = smoke->methods[methidx];"
                   "C_return((void*)&m);")
                 smoke methidx))
+         (classidx ((foreign-lambda* Index ((c-pointer meth))
+                      "Smoke::Method *m = (Smoke::Method*)meth;"
+                      "C_return(m->classId);")
+                    meth))
          (protected? ((foreign-lambda* bool ((c-pointer meth))
                         "Smoke::Method *m = (Smoke::Method*)meth;"
                         "C_return(m->flags & Smoke::mf_protected);")

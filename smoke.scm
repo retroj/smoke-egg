@@ -91,8 +91,12 @@
                      (method-this m)))
 
 (define (method-args m)
-  (smoke-method-args-vector (slot-value (method-binding m) 'smoke)
-                            (method-this m)))
+  (let ((smoke (slot-value (method-binding m) 'smoke)))
+    (map
+     (lambda (x) (smoke-type-name smoke x))
+     (s16vector->list
+      (smoke-method-args-vector
+       smoke (method-this m))))))
 
 (define (method-nargs m)
   (char->integer (Method-numArgs (method-this m))))

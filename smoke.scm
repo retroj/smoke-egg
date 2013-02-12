@@ -30,6 +30,8 @@
 (import chicken scheme foreign)
 
 (use
+ srfi-4
+ (only srfi-13 string-join)
  srfi-69
  coops
  extras
@@ -153,11 +155,6 @@
 
 
 #>
-#include <iostream>
-#include <string>
-
-using namespace std;
-
 /* These forward declarations are redundant of what define-external
  * produces, but no matter where the define-external calls are in the
  * file, their declarations are generated after this code block, but
@@ -188,29 +185,6 @@ public:
         Smoke::Stack args, bool isAbstract)
     {
         Smoke::Method meth = smoke->methods[method];
-        string name;
-
-        // check for method flags
-        if (meth.flags & Smoke::mf_protected) name += "protected ";
-        if (meth.flags & Smoke::mf_const) name += "const ";
-
-        // add the name
-        name += smoke->methodNames[meth.name] + string("(");
-
-        // iterate over the argument list and build up the
-        // parameter names
-        Smoke::Index *idx = smoke->argumentList + meth.args;
-        while (*idx) {
-            name += smoke->types[*idx].name;
-            idx++;
-            if (*idx) name += ", ";
-        }
-        name += ")";
-
-        if (name == "protected mousePressEvent(QMouseEvent*)") {
-            cout << className(meth.classId) << "(" << obj
-                 << ")::" << name << endl;
-        }
         if (can_callback) {
             SchemeSmokeBinding_callMethod_cb(this, meth.classId, method,
                                              obj, args, isAbstract);
@@ -295,8 +269,52 @@ public:
 
 (define-method (handle-callback (this <SchemeSmokeBinding>)
                                 classidx methidx obj stack abstract?)
-  (printf "methodcall: ~A~%"
-          (SchemeSmokeBinding-className (slot-value this 'this) classidx)))
+  (let* ((smoke (slot-value this 'smoke))
+         (meth ((foreign-lambda* c-pointer ((Smoke smoke) (Index methidx))
+                  "Smoke::Method m = smoke->methods[methidx];"
+                  "C_return((void*)&m);")
+                smoke methidx))
+         (protected? ((foreign-lambda* bool ((c-pointer meth))
+                        "Smoke::Method *m = (Smoke::Method*)meth;"
+                        "C_return(m->flags & Smoke::mf_protected);")
+                      meth))
+         (const? ((foreign-lambda* bool ((c-pointer meth))
+                    "Smoke::Method *m = (Smoke::Method*)meth;"
+                    "C_return(m->flags & Smoke::mf_const);")
+                  meth))
+         (mname ((foreign-lambda* c-string ((Smoke smoke) (c-pointer meth))
+                   "Smoke::Method *m = (Smoke::Method*)meth;"
+                   "C_return(smoke->methodNames[m->name]);")
+                 smoke meth))
+         (nargs ((foreign-lambda* int ((c-pointer meth))
+                   "Smoke::Method *m = (Smoke::Method*)meth;"
+                   "C_return((int)m->numArgs);")
+                 meth))
+         (argsvector (make-s16vector nargs)))
+    ((foreign-lambda* void ((Smoke smoke) (c-pointer meth) (s16vector argsvector) (int nargs))
+       "Smoke::Method *m = (Smoke::Method*)meth;"
+       "Smoke::Index *idx = smoke->argumentList + m->args;"
+       "size_t i;"
+       "for (i = 0; i < nargs; i++) {"
+       "    argsvector[i] = idx[i];"
+       "}")
+     smoke meth argsvector nargs)
+    (define type-name
+      (foreign-lambda* c-string ((Smoke smoke) (Index idx))
+        "C_return(smoke->types[idx].name);"))
+    (let ((name (sprintf "~A~A~A(~A)"
+                         (if protected? "protected " "")
+                         (if const? "const " "")
+                         mname
+                         (string-join
+                          (map (lambda (x) (type-name smoke x))
+                               (s16vector->list argsvector))
+                          ", "))))
+      (when (string=? name "protected mousePressEvent(QMouseEvent*)")
+        (printf "~A(~A)::~A~%"
+                (SchemeSmokeBinding-className (slot-value this 'this) classidx)
+                obj
+                name)))))
 
 (define-method (find-class (this <SchemeSmokeBinding>) cname)
   (define %find-class

@@ -56,6 +56,15 @@
   (Smoke smoke ModuleIndex-smoke)
   (Index index ModuleIndex-index))
 
+(define-foreign-record-type Method
+  (Index classId Method-classId)
+  (Index name Method-name)
+  (Index args Method-args)
+  (unsigned-char numArgs Method-numArgs)
+  (unsigned-short flags Method-flags)
+  (Index ret Method-ret)
+  (Index method Method-method))
+
 
 ;;;
 ;;; Stack
@@ -277,13 +286,12 @@ public:
 (define-method (handle-callback (this <SchemeSmokeBinding>) methidx obj stack abstract?)
   (and-let* ((eventmap (hash-table-ref/default event-handlers obj #f))
              (smoke (slot-value this 'smoke))
-             (meth ((foreign-lambda* c-pointer ((Smoke smoke) (Index methidx))
+             (meth ((foreign-lambda* Method ((Smoke smoke) (Index methidx))
                       "Smoke::Method m = smoke->methods[methidx];"
-                      "C_return((void*)&m);")
+                      "C_return(&m);")
                     smoke methidx))
-             (name ((foreign-lambda* c-string ((Smoke smoke) (c-pointer meth))
-                      "Smoke::Method *m = (Smoke::Method*)meth;"
-                      "C_return(smoke->methodNames[m->name]);")
+             (name ((foreign-lambda* c-string ((Smoke smoke) (Method meth))
+                      "C_return(smoke->methodNames[meth->name]);")
                     smoke meth))
              (handlers (hash-table-ref/default eventmap name #f)))
     (for-each
@@ -341,34 +349,23 @@ public:
 
 (define (click-test-handler this methidx obj stack abstract?)
   (let* ((smoke (slot-value this 'smoke))
-         (meth ((foreign-lambda* c-pointer ((Smoke smoke) (Index methidx))
+         (meth ((foreign-lambda* Method ((Smoke smoke) (Index methidx))
                   "Smoke::Method m = smoke->methods[methidx];"
-                  "C_return((void*)&m);")
+                  "C_return(&m);")
                 smoke methidx))
-         (classidx ((foreign-lambda* Index ((c-pointer meth))
-                      "Smoke::Method *m = (Smoke::Method*)meth;"
-                      "C_return(m->classId);")
-                    meth))
-         (protected? ((foreign-lambda* bool ((c-pointer meth))
-                        "Smoke::Method *m = (Smoke::Method*)meth;"
-                        "C_return(m->flags & Smoke::mf_protected);")
+         (protected? ((foreign-lambda* bool ((Method meth))
+                        "C_return(meth->flags & Smoke::mf_protected);")
                       meth))
-         (const? ((foreign-lambda* bool ((c-pointer meth))
-                    "Smoke::Method *m = (Smoke::Method*)meth;"
-                    "C_return(m->flags & Smoke::mf_const);")
+         (const? ((foreign-lambda* bool ((Method meth))
+                    "C_return(meth->flags & Smoke::mf_const);")
                   meth))
-         (mname ((foreign-lambda* c-string ((Smoke smoke) (c-pointer meth))
-                   "Smoke::Method *m = (Smoke::Method*)meth;"
-                   "C_return(smoke->methodNames[m->name]);")
+         (mname ((foreign-lambda* c-string ((Smoke smoke) (Method meth))
+                   "C_return(smoke->methodNames[meth->name]);")
                  smoke meth))
-         (nargs ((foreign-lambda* int ((c-pointer meth))
-                   "Smoke::Method *m = (Smoke::Method*)meth;"
-                   "C_return((int)m->numArgs);")
-                 meth))
+         (nargs (char->integer (Method-numArgs meth)))
          (argsvector (make-s16vector nargs)))
-    ((foreign-lambda* void ((Smoke smoke) (c-pointer meth) (s16vector argsvector) (int nargs))
-       "Smoke::Method *m = (Smoke::Method*)meth;"
-       "Smoke::Index *idx = smoke->argumentList + m->args;"
+    ((foreign-lambda* void ((Smoke smoke) (Method meth) (s16vector argsvector) (int nargs))
+       "Smoke::Index *idx = smoke->argumentList + meth->args;"
        "size_t i;"
        "for (i = 0; i < nargs; i++) {"
        "    argsvector[i] = idx[i];"
@@ -386,7 +383,9 @@ public:
                                (s16vector->list argsvector))
                           ", "))))
       (printf "~A(~A)::~A~%"
-              (SchemeSmokeBinding-className (slot-value this 'this) classidx)
+              (SchemeSmokeBinding-className
+               (slot-value this 'this)
+               (Method-classId meth))
               obj
               name))))
 

@@ -72,6 +72,37 @@
   (foreign-lambda* bool ((Method meth))
     "C_return(meth->flags & Smoke::mf_const);"))
 
+(define-record method
+  this
+  binding)
+
+(define %make-method make-method)
+
+(define (make-method binding methidx)
+  (%make-method
+   (smoke-method (slot-value binding 'smoke) methidx)
+   binding))
+
+(define (method-classid m)
+  (Method-classId (method-this m)))
+
+(define (method-name m)
+  (smoke-method-name (slot-value (method-binding m) 'smoke)
+                     (method-this m)))
+
+(define (method-args m)
+  (smoke-method-args-vector (slot-value (method-binding m) 'smoke)
+                            (method-this m)))
+
+(define (method-nargs m)
+  (char->integer (Method-numArgs (method-this m))))
+
+(define (method-protected? m)
+  (Method-protected? (method-this m)))
+
+(define (method-const? m)
+  (Method-const? (method-this m)))
+
 (define smoke-method
   (foreign-lambda* Method ((Smoke smoke) (Index methidx))
     "Smoke::Method m = smoke->methods[methidx];"
@@ -300,9 +331,8 @@ public:
 
 (define-method (handle-callback (this <SchemeSmokeBinding>) methidx obj stack abstract?)
   (and-let* ((eventmap (hash-table-ref/default event-handlers obj #f))
-             (smoke (slot-value this 'smoke))
-             (meth (smoke-method smoke methidx))
-             (name (smoke-method-name smoke meth))
+             (meth (make-method this methidx))
+             (name (method-name meth))
              (handlers (hash-table-ref/default eventmap name #f)))
     (for-each
      (lambda (handler)

@@ -336,7 +336,7 @@ public:
              (handlers (hash-table-ref/default eventmap name #f)))
     (for-each
      (lambda (handler)
-       (handler this meth obj stack abstract?))
+       (handler meth obj stack abstract?))
      handlers)))
 
 (define-method (find-class (this <SchemeSmokeBinding>) cname)

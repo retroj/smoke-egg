@@ -269,7 +269,9 @@ public:
 
 (define-class <SchemeSmokeBinding> ()
   ((this)
-   (smoke initform: (error "'smoke field required"))))
+   (smoke initform: (error "'smoke field required"))
+   (stack #f)
+   (initial-stack-size initform: 3)))
 
 (define-foreign-type SchemeSmokeBinding
   (instance SchemeSmokeBinding <SchemeSmokeBinding>))
@@ -320,11 +322,24 @@ public:
     (set-finalizer! m free)
     m))
 
-(define-method (instantiate (this <SchemeSmokeBinding>) cname mname stack)
+(define (get-stack/create this #!optional (minsize 1))
+  (let ((stack (slot-value this 'stack)))
+    (unless (and stack (>= (smoke-stack-size stack) minsize))
+      (set! (slot-value this 'stack)
+            (make-smoke-stack
+             (max minsize (slot-value this 'initial-stack-size)))))
+    (slot-value this 'stack)))
+
+(define-method (instantiate (this <SchemeSmokeBinding>) cname mname args)
   (let ((cid (find-class this cname))
-        (mid (find-method this cname mname)))
+        (mid (find-method this cname mname))
+        (stack (if (smoke-stack? args)
+                   args
+                   (smoke-stack-populate!
+                    (get-stack/create this (max 2 (length args)))
+                    args))))
     (call-method this mid #f stack)
-    (let ((o (smoke-stack-pointer stack 0)))
+    (let* ((o (smoke-stack-pointer stack 0)))
       (smoke-stack-set-pointer! stack 1 (slot-value this 'this))
       (call-method/classid+methidx this cid 0 o stack)
       o)))

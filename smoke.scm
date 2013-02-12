@@ -65,6 +65,12 @@
   (Index ret Method-ret)
   (Index method Method-method))
 
+(define smoke-method
+  (foreign-lambda* Method ((Smoke smoke) (Index methidx))
+    "Smoke::Method m = smoke->methods[methidx];"
+    "C_return(&m);"))
+
+
 
 ;;;
 ;;; Stack
@@ -286,10 +292,7 @@ public:
 (define-method (handle-callback (this <SchemeSmokeBinding>) methidx obj stack abstract?)
   (and-let* ((eventmap (hash-table-ref/default event-handlers obj #f))
              (smoke (slot-value this 'smoke))
-             (meth ((foreign-lambda* Method ((Smoke smoke) (Index methidx))
-                      "Smoke::Method m = smoke->methods[methidx];"
-                      "C_return(&m);")
-                    smoke methidx))
+             (meth (smoke-method smoke methidx))
              (name ((foreign-lambda* c-string ((Smoke smoke) (Method meth))
                       "C_return(smoke->methodNames[meth->name]);")
                     smoke meth))
@@ -349,10 +352,7 @@ public:
 
 (define (click-test-handler this methidx obj stack abstract?)
   (let* ((smoke (slot-value this 'smoke))
-         (meth ((foreign-lambda* Method ((Smoke smoke) (Index methidx))
-                  "Smoke::Method m = smoke->methods[methidx];"
-                  "C_return(&m);")
-                smoke methidx))
+         (meth (smoke-method smoke methidx))
          (protected? ((foreign-lambda* bool ((Method meth))
                         "C_return(meth->flags & Smoke::mf_protected);")
                       meth))

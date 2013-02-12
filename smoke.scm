@@ -78,6 +78,14 @@
     "Smoke::Method m = smoke->methods[methidx];"
     "C_return(&m);"))
 
+(define smoke-method-name
+  (foreign-lambda* c-string ((Smoke smoke) (Method meth))
+    "C_return(smoke->methodNames[meth->name]);"))
+
+(define smoke-type-name
+  (foreign-lambda* c-string ((Smoke smoke) (Index idx))
+    "C_return(smoke->types[idx].name);"))
+
 
 
 ;;;
@@ -363,9 +371,7 @@ public:
          (meth (smoke-method smoke methidx))
          (protected? (Method-protected? meth))
          (const? (Method-const? meth))
-         (mname ((foreign-lambda* c-string ((Smoke smoke) (Method meth))
-                   "C_return(smoke->methodNames[meth->name]);")
-                 smoke meth))
+         (mname (smoke-method-name smoke meth))
          (nargs (char->integer (Method-numArgs meth)))
          (argsvector (make-s16vector nargs)))
     ((foreign-lambda* void ((Smoke smoke) (Method meth) (s16vector argsvector) (int nargs))
@@ -375,15 +381,12 @@ public:
        "    argsvector[i] = idx[i];"
        "}")
      smoke meth argsvector nargs)
-    (define type-name
-      (foreign-lambda* c-string ((Smoke smoke) (Index idx))
-        "C_return(smoke->types[idx].name);"))
     (let ((name (sprintf "~A~A~A(~A)"
                          (if protected? "protected " "")
                          (if const? "const " "")
                          mname
                          (string-join
-                          (map (lambda (x) (type-name smoke x))
+                          (map (lambda (x) (smoke-type-name smoke x))
                                (s16vector->list argsvector))
                           ", "))))
       (printf "~A(~A)::~A~%"

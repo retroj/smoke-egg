@@ -330,7 +330,8 @@ public:
              (max minsize (slot-value this 'initial-stack-size)))))
     (slot-value this 'stack)))
 
-(define-method (instantiate (this <SchemeSmokeBinding>) cname mname args)
+(define-method (instantiate (this <SchemeSmokeBinding>) cname mname
+                            #!optional (args '()))
   (let ((cid (find-class this cname))
         (mid (find-method this cname mname))
         (stack (if (smoke-stack? args)

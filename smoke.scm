@@ -368,29 +368,44 @@ public:
           "fn(m->method, thisobj, (Smoke::Stack)stack);"
           "binding->can_callback = 0;"))))
 
-(define (call-method binding methId thisobj stack)
-  ((%call-method-form foreign-lambda* "0")
-   binding methId
-   (if (eq? #f thisobj)
-       (foreign-value "((void*)0)" c-pointer)
-       thisobj)
-   (smoke-stack-stack stack)))
+(define (call-method binding methId thisobj #!optional (args '()))
+  (let ((stack (if (smoke-stack? args)
+                   args
+                   (smoke-stack-populate!
+                    (get-stack/create binding (max 1 (length args)))
+                    args))))
+    ((%call-method-form foreign-lambda* "0")
+     binding methId
+     (if (eq? #f thisobj)
+         (foreign-value "((void*)0)" c-pointer)
+         thisobj)
+     (smoke-stack-stack stack))))
 
-(define (call-method-with-callbacks binding methId thisobj stack)
-  ((%call-method-form foreign-safe-lambda* "1")
-   binding methId
-   (if (eq? #f thisobj)
-       (foreign-value "((void*)0)" c-pointer)
-       thisobj)
-   (smoke-stack-stack stack)))
+(define (call-method-with-callbacks binding methId thisobj #!optional (args '()))
+  (let ((stack (if (smoke-stack? args)
+                   args
+                   (smoke-stack-populate!
+                    (get-stack/create binding (max 1 (length args)))
+                    args))))
+    ((%call-method-form foreign-safe-lambda* "1")
+     binding methId
+     (if (eq? #f thisobj)
+         (foreign-value "((void*)0)" c-pointer)
+         thisobj)
+     (smoke-stack-stack stack))))
 
-(define (call-method/classid+methidx binding classid methidx thisobj stack)
-  ((foreign-lambda* void
-       ((SchemeSmokeBinding binding) (ModuleIndex classId) (Index methodIdx)
-        (c-pointer thisobj) (Stack stack))
-     "Smoke::ClassFn fn = classId->smoke->classes[classId->index].classFn;"
-     "Smoke::Method* m = classId->smoke->methods + methodIdx;"
-     "fn(m->method, thisobj, (Smoke::Stack)stack);")
-   binding classid methidx thisobj (smoke-stack-stack stack)))
+(define (call-method/classid+methidx binding classid methidx thisobj #!optional (args '()))
+  (let ((stack (if (smoke-stack? args)
+                   args
+                   (smoke-stack-populate!
+                    (get-stack/create binding (max 1 (length args)))
+                    args))))
+    ((foreign-lambda* void
+         ((SchemeSmokeBinding binding) (ModuleIndex classId) (Index methodIdx)
+          (c-pointer thisobj) (Stack stack))
+       "Smoke::ClassFn fn = classId->smoke->classes[classId->index].classFn;"
+       "Smoke::Method* m = classId->smoke->methods + methodIdx;"
+       "fn(m->method, thisobj, (Smoke::Stack)stack);")
+     binding classid methidx thisobj (smoke-stack-stack stack))))
 
 )

@@ -155,6 +155,12 @@
     (set-finalizer! s free)
     (%make-smoke-stack s size)))
 
+(define (smoke-stack-item-pointer stack idx)
+  ((foreign-lambda* Stack ((Stack stack) (size_t idx))
+     "Smoke::StackItem *s = (Smoke::StackItem*)stack;"
+     "C_return(s + idx);")
+   stack idx))
+
 (define %smoke-stack-int
   (foreign-lambda* int ((Stack stack) (size_t idx))
     "Smoke::Stack s = (Smoke::Stack)stack;"
@@ -311,6 +317,7 @@ public:
 (define-generic (find-class this))
 (define-generic (find-method this))
 (define-generic (instantiate this))
+(define-generic (make-scheme-object this))
 
 (define-class <SchemeSmokeBinding> ()
   ((this)
@@ -337,11 +344,23 @@ public:
   (and-let* ((eventmap (hash-table-ref/default event-handlers target #f))
              (meth (make-method this methidx))
              (name (method-name meth))
-             (handlers (hash-table-ref/default eventmap name #f)))
+             (handlers (hash-table-ref/default eventmap name #f))
+             (args (map
+                    (let ((i 1))
+                      (lambda (type)
+                        (let ((o (make-scheme-object
+                                  this type
+                                  (smoke-stack-item-pointer stack i))))
+                          (set! i (+ 1 i))
+                          o)))
+                    (method-args meth))))
     (for-each
      (lambda (handler)
-       (handler meth target stack))
+       (apply handler meth target args))
      handlers)))
+
+(define-method (make-scheme-object (this <SchemeSmokeBinding>) type pointer)
+  #f)
 
 (define-method (find-class (this <SchemeSmokeBinding>) cname)
   (define %find-class

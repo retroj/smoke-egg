@@ -86,6 +86,18 @@
   (foreign-lambda* c-string ((Smoke smoke) (Index idx))
     "C_return(smoke->types[idx].name);"))
 
+(define (smoke-method-args-vector smoke meth)
+  (let* ((nargs (char->integer (Method-numArgs meth)))
+         (argsvector (make-s16vector nargs)))
+    ((foreign-lambda* void ((Smoke smoke) (Method meth) (s16vector argsvector) (int nargs))
+       "Smoke::Index *idx = smoke->argumentList + meth->args;"
+       "unsigned char i;"
+       "for (i = 0; i < nargs; i++) {"
+       "    argsvector[i] = idx[i];"
+       "}")
+     smoke meth argsvector nargs)
+    argsvector))
+
 
 
 ;;;
@@ -372,15 +384,7 @@ public:
          (protected? (Method-protected? meth))
          (const? (Method-const? meth))
          (mname (smoke-method-name smoke meth))
-         (nargs (char->integer (Method-numArgs meth)))
-         (argsvector (make-s16vector nargs)))
-    ((foreign-lambda* void ((Smoke smoke) (Method meth) (s16vector argsvector) (int nargs))
-       "Smoke::Index *idx = smoke->argumentList + meth->args;"
-       "size_t i;"
-       "for (i = 0; i < nargs; i++) {"
-       "    argsvector[i] = idx[i];"
-       "}")
-     smoke meth argsvector nargs)
+         (argsvector (smoke-method-args-vector smoke meth)))
     (let ((name (sprintf "~A~A~A(~A)"
                          (if protected? "protected " "")
                          (if const? "const " "")

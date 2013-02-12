@@ -385,11 +385,10 @@ public:
                           (map (lambda (x) (type-name smoke x))
                                (s16vector->list argsvector))
                           ", "))))
-      (when (string=? name "protected mousePressEvent(QMouseEvent*)")
-        (printf "~A(~A)::~A~%"
-                (SchemeSmokeBinding-className (slot-value this 'this) classidx)
-                obj
-                name)))))
+      (printf "~A(~A)::~A~%"
+              (SchemeSmokeBinding-className (slot-value this 'this) classidx)
+              obj
+              name))))
 
 
 ;;;

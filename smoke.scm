@@ -65,6 +65,14 @@
   (Index ret Method-ret)
   (Index method Method-method))
 
+(define Method-protected?
+  (foreign-lambda* bool ((Method meth))
+    "C_return(meth->flags & Smoke::mf_protected);"))
+
+(define Method-const?
+  (foreign-lambda* bool ((Method meth))
+    "C_return(meth->flags & Smoke::mf_const);"))
+
 (define smoke-method
   (foreign-lambda* Method ((Smoke smoke) (Index methidx))
     "Smoke::Method m = smoke->methods[methidx];"
@@ -353,12 +361,8 @@ public:
 (define (click-test-handler this methidx obj stack abstract?)
   (let* ((smoke (slot-value this 'smoke))
          (meth (smoke-method smoke methidx))
-         (protected? ((foreign-lambda* bool ((Method meth))
-                        "C_return(meth->flags & Smoke::mf_protected);")
-                      meth))
-         (const? ((foreign-lambda* bool ((Method meth))
-                    "C_return(meth->flags & Smoke::mf_const);")
-                  meth))
+         (protected? (Method-protected? meth))
+         (const? (Method-const? meth))
          (mname ((foreign-lambda* c-string ((Smoke smoke) (Method meth))
                    "C_return(smoke->methodNames[meth->name]);")
                  smoke meth))

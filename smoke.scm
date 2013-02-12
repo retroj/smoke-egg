@@ -303,9 +303,7 @@ public:
   (and-let* ((eventmap (hash-table-ref/default event-handlers obj #f))
              (smoke (slot-value this 'smoke))
              (meth (smoke-method smoke methidx))
-             (name ((foreign-lambda* c-string ((Smoke smoke) (Method meth))
-                      "C_return(smoke->methodNames[meth->name]);")
-                    smoke meth))
+             (name (smoke-method-name smoke meth))
              (handlers (hash-table-ref/default eventmap name #f)))
     (for-each
      (lambda (handler)

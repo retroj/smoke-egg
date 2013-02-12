@@ -333,14 +333,14 @@ public:
   ((foreign-lambda void "delete " (c-pointer "SchemeSmokeBinding"))
    (slot-value this 'this)))
 
-(define-method (handle-callback (this <SchemeSmokeBinding>) methidx obj stack abstract?)
-  (and-let* ((eventmap (hash-table-ref/default event-handlers obj #f))
+(define-method (handle-callback (this <SchemeSmokeBinding>) methidx target stack abstract?)
+  (and-let* ((eventmap (hash-table-ref/default event-handlers target #f))
              (meth (make-method this methidx))
              (name (method-name meth))
              (handlers (hash-table-ref/default eventmap name #f)))
     (for-each
      (lambda (handler)
-       (handler meth obj stack))
+       (handler meth target stack))
      handlers)))
 
 (define-method (find-class (this <SchemeSmokeBinding>) cname)

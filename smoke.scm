@@ -169,7 +169,7 @@
     "C_return(s[idx].s_voidp);"))
 
 (define (smoke-stack-pointer stack idx)
-  (%smoke-stack-pointer  (smoke-stack-stack stack) idx))
+  (%smoke-stack-pointer (smoke-stack-stack stack) idx))
 
 (define (%smoke-stack-set-int-pointer! stack idx n)
   (let-location ((n int n))

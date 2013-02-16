@@ -1,9 +1,7 @@
 ;; -*- scheme -*-
 
-(compile smoke.scm -j smoke -s -O2 -d0 -c++
-         -lsmokebase -lsmokeqtcore -lsmokeqtgui)
-(compile smoke.import.scm -s -O2 -d0 -c++
-         -lsmokebase -lsmokeqtcore -lsmokeqtgui)
+(compile smoke.scm -j smoke -s -O2 -d0 -c++ -lsmokebase)
+(compile smoke.import.scm -s -O2 -d0 -c++ -lsmokebase)
 
 (install-extension
  'smoke

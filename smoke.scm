@@ -202,10 +202,27 @@
 (define (smoke-stack-set-unsigned-long! stack idx n)
   (%smoke-stack-set-unsigned-long! (smoke-stack-stack stack) idx n))
 
+(define %smoke-stack-bool
+  (foreign-lambda* bool ((Stack stack) (size_t idx))
+    "Smoke::Stack s = (Smoke::Stack)stack;"
+    "C_return(s[idx].s_bool);"))
+
+(define (smoke-stack-bool stack idx)
+  (%smoke-stack-bool (smoke-stack-stack stack) idx))
+
+(define %smoke-stack-set-bool!
+  (foreign-lambda* void
+      ((Stack stack) (size_t idx) (bool n))
+    "Smoke::Stack s = (Smoke::Stack)stack;"
+    "s[idx].s_bool = n;"))
+
+(define (smoke-stack-set-bool! stack idx n)
+  (%smoke-stack-set-bool! (smoke-stack-stack stack) idx n))
+
 (define smoke-stack-setters
   `((c-pointer         . ,%smoke-stack-set-pointer!)
     ((c-pointer int)   . ,%smoke-stack-set-int-pointer!)
-    ;; (bool           . )
+    (bool              . ,%smoke-stack-set-bool!)
     ;; (char           . )
     ;; (unsigned-char  . )
     ;; (short          . )

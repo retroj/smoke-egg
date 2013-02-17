@@ -161,6 +161,8 @@
      "C_return(s + idx);")
    stack idx))
 
+;; smoke-stack int
+;;
 (define %smoke-stack-int
   (foreign-lambda* int ((Stack stack) (size_t idx))
     "Smoke::Stack s = (Smoke::Stack)stack;"
@@ -169,6 +171,17 @@
 (define (smoke-stack-int stack idx)
   (%smoke-stack-int (smoke-stack-stack stack) idx))
 
+(define %smoke-stack-set-int!
+  (foreign-lambda* void
+      ((Stack stack) (size_t idx) (int n))
+    "Smoke::Stack s = (Smoke::Stack)stack;"
+    "s[idx].s_int = n;"))
+
+(define (smoke-stack-set-int! stack idx n)
+  (%smoke-stack-set-int! (smoke-stack-stack stack) idx n))
+
+;; smoke-stack pointer
+;;
 (define %smoke-stack-pointer
   (foreign-lambda* c-pointer ((Stack stack) (size_t idx))
     "Smoke::Stack s = (Smoke::Stack)stack;"
@@ -176,13 +189,6 @@
 
 (define (smoke-stack-pointer stack idx)
   (%smoke-stack-pointer (smoke-stack-stack stack) idx))
-
-(define (%smoke-stack-set-int-pointer! stack idx n)
-  (let-location ((n int n))
-    (%smoke-stack-set-pointer! stack idx (location n))))
-
-(define (smoke-stack-set-int-pointer! stack idx n)
-  (%smoke-stack-set-int-pointer! (smoke-stack-stack stack) idx n))
 
 (define %smoke-stack-set-pointer!
   (foreign-lambda* void
@@ -193,6 +199,17 @@
 (define (smoke-stack-set-pointer! stack idx p)
   (%smoke-stack-set-pointer! (smoke-stack-stack stack) idx p))
 
+;; smoke-stack int-pointer
+;;
+(define (%smoke-stack-set-int-pointer! stack idx n)
+  (let-location ((n int n))
+    (%smoke-stack-set-pointer! stack idx (location n))))
+
+(define (smoke-stack-set-int-pointer! stack idx n)
+  (%smoke-stack-set-int-pointer! (smoke-stack-stack stack) idx n))
+
+;; smoke-stack unsigned-long
+;;
 (define %smoke-stack-set-unsigned-long!
   (foreign-lambda* void
       ((Stack stack) (size_t idx) (unsigned-long n))
@@ -202,6 +219,8 @@
 (define (smoke-stack-set-unsigned-long! stack idx n)
   (%smoke-stack-set-unsigned-long! (smoke-stack-stack stack) idx n))
 
+;; smoke-stack bool
+;;
 (define %smoke-stack-bool
   (foreign-lambda* bool ((Stack stack) (size_t idx))
     "Smoke::Stack s = (Smoke::Stack)stack;"
@@ -227,7 +246,7 @@
     ;; (unsigned-char  . )
     ;; (short          . )
     ;; (unsigned-short . )
-    ;; (int            . )
+    (int               . ,%smoke-stack-set-int!)
     ;; (unsigned-int   . )
     ;; (long           . )
     (unsigned-long     . ,%smoke-stack-set-unsigned-long!)

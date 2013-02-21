@@ -445,6 +445,19 @@ public:
       (call-method/classid+methidx this cid 0 o stack)
       o)))
 
+(define-syntax with-instance
+  (syntax-rules ()
+    ((with-instance (this cname mname) proc)
+     (with-instance (this cname mname '()) proc))
+    ((with-instance (this cname mname args) proc)
+     (let ((obj (instantiate this cname mname args)))
+       (dynamic-wind
+           (lambda () #f)
+           (lambda () (proc obj))
+           (lambda ()
+             (let ((mid (find-method this cname (string-append "~" cname))))
+               (call-method this mid obj))))))))
+
 
 ;;;
 ;;; Call Method

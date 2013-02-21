@@ -238,6 +238,22 @@
 (define (smoke-stack-set-bool! stack idx n)
   (%smoke-stack-set-bool! (smoke-stack-stack stack) idx n))
 
+(define smoke-stack-getters
+  `((c-pointer         . ,%smoke-stack-pointer)
+    ;; ((c-pointer int)   . ,%smoke-stack-int-pointer)
+    (bool              . ,%smoke-stack-bool)
+    ;; (char           . )
+    ;; (unsigned-char  . )
+    ;; (short          . )
+    ;; (unsigned-short . )
+    (int               . ,%smoke-stack-int)
+    ;; (unsigned-int   . )
+    ;; (long           . )
+    ;; (unsigned-long     . ,%smoke-stack-unsigned-long)
+    ;; (float          . )
+    ;; (double         . )
+    ))
+
 (define smoke-stack-setters
   `((c-pointer         . ,%smoke-stack-set-pointer!)
     ((c-pointer int)   . ,%smoke-stack-set-int-pointer!)
@@ -439,10 +455,9 @@ public:
                    (smoke-stack-populate!
                     (get-stack/create this (max 2 (length args)))
                     args))))
-    (call-method this mid #f stack)
-    (let* ((o (smoke-stack-pointer stack 0)))
+    (let ((o (call-method this mid #f 'c-pointer stack)))
       (smoke-stack-set-pointer! stack 1 (slot-value this 'this))
-      (call-method/classid+methidx this cid 0 o stack)
+      (call-method/classid+methidx this cid 0 o #f stack)
       o)))
 
 (define-syntax with-instance
@@ -481,7 +496,7 @@ public:
           "fn(m->method, thisobj, (Smoke::Stack)stack);"
           "binding->can_callback = 0;"))))
 
-(define (call-method binding methId thisobj #!optional (args '()))
+(define (call-method binding methId thisobj #!optional type (args '()))
   (let ((stack (if (smoke-stack? args)
                    args
                    (smoke-stack-populate!
@@ -492,9 +507,14 @@ public:
      (if (eq? #f thisobj)
          (foreign-value "((void*)0)" c-pointer)
          thisobj)
-     (smoke-stack-stack stack))))
+     (smoke-stack-stack stack))
+    (if type
+        (let ((getter (cdr (assoc-def type smoke-stack-getters))))
+          (getter (smoke-stack-stack stack) 0))
+        #f)))
 
-(define (call-method-with-callbacks binding methId thisobj #!optional (args '()))
+(define (call-method-with-callbacks binding methId thisobj
+                                    #!optional type (args '()))
   (let ((stack (if (smoke-stack? args)
                    args
                    (smoke-stack-populate!
@@ -505,9 +525,14 @@ public:
      (if (eq? #f thisobj)
          (foreign-value "((void*)0)" c-pointer)
          thisobj)
-     (smoke-stack-stack stack))))
+     (smoke-stack-stack stack))
+    (if type
+        (let ((getter (cdr (assoc-def type smoke-stack-getters))))
+          (getter (smoke-stack-stack stack) 0))
+        #f)))
 
-(define (call-method/classid+methidx binding classid methidx thisobj #!optional (args '()))
+(define (call-method/classid+methidx binding classid methidx thisobj
+                                     #!optional type (args '()))
   (let ((stack (if (smoke-stack? args)
                    args
                    (smoke-stack-populate!
@@ -519,6 +544,10 @@ public:
        "Smoke::ClassFn fn = classId->smoke->classes[classId->index].classFn;"
        "Smoke::Method* m = classId->smoke->methods + methodIdx;"
        "fn(m->method, thisobj, (Smoke::Stack)stack);")
-     binding classid methidx thisobj (smoke-stack-stack stack))))
+     binding classid methidx thisobj (smoke-stack-stack stack))
+    (if type
+        (let ((getter (cdr (assoc-def type smoke-stack-getters))))
+          (getter (smoke-stack-stack stack) 0))
+        #f)))
 
 )

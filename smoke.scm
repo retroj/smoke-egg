@@ -272,8 +272,8 @@
 
 (define (smoke-stack-populate! stack vals)
   (let ((s (smoke-stack-stack stack))
-        (nvals (length vals))
-        (nstack (- (smoke-stack-size stack) 1))
+        (nvals (+ 1 (length vals)))
+        (nstack (smoke-stack-size stack))
         (i 1))
     (when (> nvals nstack)
       (error (sprintf "smoke-stack not big enough: size ~A, need ~A"

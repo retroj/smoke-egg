@@ -293,6 +293,10 @@
      (c-string          . ,%smoke-stack-set-c-string!))
    #:test equal?))
 
+(define (smoke-stack-add-type! type getter setter)
+  (hash-table-set! smoke-stack-getters type getter)
+  (hash-table-set! smoke-stack-setters type setter))
+
 (define (smoke-stack-populate! stack vals)
   (let ((s (smoke-stack-stack stack))
         (nvals (+ 1 (length vals)))

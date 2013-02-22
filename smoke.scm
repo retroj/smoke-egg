@@ -202,7 +202,7 @@
 ;; smoke-stack int-pointer
 ;;
 (define (%smoke-stack-set-int-pointer! stack idx n)
-  (let-location ((n int n))
+  (let-location ((n int n)) ;;XXX: bad - could get moved by GC
     (%smoke-stack-set-pointer! stack idx (location n))))
 
 (define (smoke-stack-set-int-pointer! stack idx n)

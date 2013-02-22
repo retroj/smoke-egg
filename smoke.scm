@@ -199,6 +199,25 @@
 (define (smoke-stack-set-pointer! stack idx p)
   (%smoke-stack-set-pointer! (smoke-stack-stack stack) idx p))
 
+;; smoke-stack c-string
+;;
+(define %smoke-stack-c-string
+  (foreign-lambda* c-string ((Stack stack) (size_t idx))
+    "Smoke::Stack s = (Smoke::Stack)stack;"
+    "C_return((char *)(s[idx].s_voidp));"))
+
+(define (smoke-stack-c-string stack idx)
+  (%smoke-stack-c-string (smoke-stack-stack stack) idx))
+
+(define %smoke-stack-set-c-string!
+  (foreign-lambda* void
+      ((Stack stack) (size_t idx) (c-string str))
+    "Smoke::Stack s = (Smoke::Stack)stack;"
+    "s[idx].s_voidp = (void *)str;"))
+
+(define (smoke-stack-set-c-string! stack idx str)
+  (%smoke-stack-set-c-string! (smoke-stack-stack stack) idx str))
+
 ;; smoke-stack int-pointer
 ;;
 (define (%smoke-stack-set-int-pointer! stack idx n)
@@ -253,7 +272,7 @@
      ;; (unsigned-long     . ,%smoke-stack-unsigned-long)
      ;; (float          . )
      ;; (double         . )
-     )
+     (c-string          . ,%smoke-stack-c-string))
    #:test equal?))
 
 (define smoke-stack-setters
@@ -271,7 +290,7 @@
      (unsigned-long     . ,%smoke-stack-set-unsigned-long!)
      ;; (float          . )
      ;; (double         . )
-     )
+     (c-string          . ,%smoke-stack-set-c-string!))
    #:test equal?))
 
 (define (smoke-stack-populate! stack vals)

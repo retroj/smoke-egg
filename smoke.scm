@@ -539,14 +539,17 @@ public:
           "fn(m->method, thisobj, (Smoke::Stack)stack);"
           "binding->can_callback = 0;"))))
 
-(define (call-method binding methId thisobj #!optional type (args '()))
-  (let ((stack (if (smoke-stack? args)
+(define (call-method binding method thisobj #!optional type (args '()))
+  (let ((method (if (pair? method)
+                    (find-method binding (car method) (cadr method))
+                    method))
+        (stack (if (smoke-stack? args)
                    args
                    (smoke-stack-populate!
                     (get-stack/create binding (max 1 (+ 1 (length args))))
                     args))))
     ((%call-method-form foreign-lambda* "0")
-     binding methId
+     binding method
      (if (eq? #f thisobj)
          (foreign-value "((void*)0)" c-pointer)
          thisobj)
@@ -556,15 +559,18 @@ public:
           (getter (smoke-stack-stack stack) 0))
         #f)))
 
-(define (call-method-with-callbacks binding methId thisobj
+(define (call-method-with-callbacks binding method thisobj
                                     #!optional type (args '()))
-  (let ((stack (if (smoke-stack? args)
+  (let ((method (if (pair? method)
+                    (find-method binding (car method) (cadr method))
+                    method))
+        (stack (if (smoke-stack? args)
                    args
                    (smoke-stack-populate!
                     (get-stack/create binding (max 1 (+ 1 (length args))))
                     args))))
     ((%call-method-form foreign-safe-lambda* "1")
-     binding methId
+     binding method
      (if (eq? #f thisobj)
          (foreign-value "((void*)0)" c-pointer)
          thisobj)

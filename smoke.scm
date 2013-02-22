@@ -543,7 +543,7 @@ public:
   (let ((stack (if (smoke-stack? args)
                    args
                    (smoke-stack-populate!
-                    (get-stack/create binding (max 1 (length args)))
+                    (get-stack/create binding (max 1 (+ 1 (length args))))
                     args))))
     ((%call-method-form foreign-lambda* "0")
      binding methId
@@ -561,7 +561,7 @@ public:
   (let ((stack (if (smoke-stack? args)
                    args
                    (smoke-stack-populate!
-                    (get-stack/create binding (max 1 (length args)))
+                    (get-stack/create binding (max 1 (+ 1 (length args))))
                     args))))
     ((%call-method-form foreign-safe-lambda* "1")
      binding methId
@@ -579,7 +579,7 @@ public:
   (let ((stack (if (smoke-stack? args)
                    args
                    (smoke-stack-populate!
-                    (get-stack/create binding (max 1 (length args)))
+                    (get-stack/create binding (max 1 (+ 1 (length args))))
                     args))))
     ((foreign-lambda* void
          ((SchemeSmokeBinding binding) (ModuleIndex classId) (Index methodIdx)

@@ -467,7 +467,9 @@ public:
         (stack (if (smoke-stack? args)
                    args
                    (smoke-stack-populate!
-                    (get-stack/create this (max 2 (length args)))
+                    ;; minimum stack size is 2 because of the following
+                    ;; call to set the object's smoke.
+                    (get-stack/create this (max 2 (+ 1 (length args))))
                     args))))
     (let ((o (call-method this mid #f 'c-pointer stack)))
       (smoke-stack-set-pointer! stack 1 (slot-value this 'this))

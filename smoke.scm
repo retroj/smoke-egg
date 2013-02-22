@@ -423,6 +423,11 @@ public:
       "memcpy(c, &classId, sizeof(Smoke::ModuleIndex));"
       "C_return(c);"))
   (let ((c (%find-class (slot-value this 'smoke) cname)))
+    (when (= 0 (ModuleIndex-index c))
+      (free c)
+      (signal
+       (make-property-condition
+        'not-found 'message "smoke class not found")))
     (set-finalizer! c free)
     c))
 
@@ -434,7 +439,16 @@ public:
       "Smoke::ModuleIndex *m = (Smoke::ModuleIndex*)malloc(sizeof(Smoke::ModuleIndex));"
       "memcpy(m, &methId, sizeof(Smoke::ModuleIndex));"
       "C_return(m);"))
-  (let ((m (%find-method (slot-value this 'smoke) cname mname)))
+  (let* ((m (%find-method (slot-value this 'smoke) cname mname))
+         (idx (ModuleIndex-index m)))
+    (when (<= idx 0)
+      (free m)
+      (signal
+       (if (= idx 0)
+           (make-property-condition
+            'not-found 'message "smoke method not found")
+           (make-property-condition
+            'multiple-match 'message "method signature matches multiple methods"))))
     (set-finalizer! m free)
     m))
 

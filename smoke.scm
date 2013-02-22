@@ -549,11 +549,7 @@ public:
                     (get-stack/create binding (max 1 (+ 1 (length args))))
                     args))))
     ((%call-method-form foreign-lambda* "0")
-     binding method
-     (if (eq? #f thisobj)
-         (foreign-value "((void*)0)" c-pointer)
-         thisobj)
-     (smoke-stack-stack stack))
+     binding method thisobj (smoke-stack-stack stack))
     (if type
         (let ((getter (hash-table-ref smoke-stack-getters type)))
           (getter (smoke-stack-stack stack) 0))
@@ -570,11 +566,7 @@ public:
                     (get-stack/create binding (max 1 (+ 1 (length args))))
                     args))))
     ((%call-method-form foreign-safe-lambda* "1")
-     binding method
-     (if (eq? #f thisobj)
-         (foreign-value "((void*)0)" c-pointer)
-         thisobj)
-     (smoke-stack-stack stack))
+     binding method thisobj (smoke-stack-stack stack))
     (if type
         (let ((getter (hash-table-ref smoke-stack-getters type)))
           (getter (smoke-stack-stack stack) 0))

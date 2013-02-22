@@ -394,7 +394,6 @@ public:
 (define-generic (destructor this))
 (define-generic (handle-callback this))
 (define-generic (find-class this))
-(define-generic (find-method this))
 (define-generic (instantiate this))
 (define-generic (make-scheme-object this))
 
@@ -458,7 +457,7 @@ public:
     (set-finalizer! c free)
     c))
 
-(define-method (find-method (this <SchemeSmokeBinding>) cname mname)
+(define (find-method this cname mname)
   (define %find-method
     (foreign-lambda* ModuleIndex
         ((Smoke smoke) (c-string cname) (c-string mname))

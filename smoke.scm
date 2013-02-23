@@ -575,11 +575,11 @@ public:
    (lambda (x r c)
      (apply
       (lambda (binding method thisobj #!optional type args)
-        (let* ((sig (if args (method-sig-from-args (cadr args)) ""))
+        (let* ((sig (if args (method-sig-from-args args) ""))
                (m (string-split (symbol->string method) ":"))
                (method `'(,(car m) ,(string-append (cadr m) sig))))
           `(%call-method ,binding ,method ,thisobj ,type
-                         ,(if args args ''()))))
+                         ,(if args (list 'quasiquote args) '(list)))))
       (cdr x)))))
 
 

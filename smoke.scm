@@ -526,6 +526,7 @@ public:
      (sym void
           ((SchemeSmokeBinding binding) (ModuleIndex methId)
            (c-pointer thisobj) (Stack stack))
+          "bool could_callback = binding->can_callback;"
           "binding->can_callback = " can-callback ";"
           "Smoke::Index methodIdx;"
           "if (methId->index > 0) {"
@@ -536,7 +537,7 @@ public:
           "Smoke::Method* m = methId->smoke->methods + methodIdx;"
           "Smoke::ClassFn fn = methId->smoke->classes[m->classId].classFn;"
           "fn(m->method, thisobj, (Smoke::Stack)stack);"
-          "binding->can_callback = 0;"))))
+          "binding->can_callback = could_callback;"))))
 
 (define (call-method binding method thisobj #!optional type (args '()))
   (let ((method (if (pair? method)

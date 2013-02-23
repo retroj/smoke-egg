@@ -520,6 +520,21 @@ public:
 ;;; Call Method
 ;;;
 
+(define-for-syntax smoke-type-signatures
+  '((c-pointer . object)
+    (int       . scalar)
+    (bool      . scalar)))
+
+(define-for-syntax (method-sig-from-args args)
+  (list->string
+   (map
+    (lambda (x)
+      (case (cdr (assoc (car x) smoke-type-signatures))
+        ((scalar) #\$)
+        ((array hash) #\@)
+        ((object) #\#)))
+    args)))
+
 (define-syntax %call-method-form
   (syntax-rules ()
     ((%call-method-form sym can-callback)
@@ -554,6 +569,19 @@ public:
         (let ((getter (hash-table-ref smoke-stack-getters type)))
           (getter (smoke-stack-stack stack) 0))
         #f)))
+
+(define-syntax call-method
+  (er-macro-transformer
+   (lambda (x r c)
+     (apply
+      (lambda (binding method thisobj #!optional type args)
+        (let* ((sig (if args (method-sig-from-args (cadr args)) ""))
+               (m (string-split (symbol->string method) ":"))
+               (method `'(,(car m) ,(string-append (cadr m) sig))))
+          `(%call-method ,binding ,method ,thisobj ,type
+                         ,(if args args ''()))))
+      (cdr x)))))
+
 
 (define (%call-method-with-callbacks binding method thisobj
                                      #!optional type (args '()))

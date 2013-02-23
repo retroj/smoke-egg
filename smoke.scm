@@ -497,7 +497,7 @@ public:
                     ;; call to set the object's smoke.
                     (get-stack/create this (max 2 (+ 1 (length args))))
                     args))))
-    (let ((o (call-method this mid #f 'c-pointer stack)))
+    (let ((o (%call-method this mid #f 'c-pointer stack)))
       (smoke-stack-set-pointer! stack 1 (slot-value this 'this))
       (call-method/classid+methidx this cid 0 o #f stack)
       o)))
@@ -513,7 +513,7 @@ public:
            (lambda () (proc obj))
            (lambda ()
              (let ((mid (find-method this cname (string-append "~" cname))))
-               (call-method this mid obj))))))))
+               (%call-method this mid obj))))))))
 
 
 ;;;
@@ -539,7 +539,7 @@ public:
           "fn(m->method, thisobj, (Smoke::Stack)stack);"
           "binding->can_callback = could_callback;"))))
 
-(define (call-method binding method thisobj #!optional type (args '()))
+(define (%call-method binding method thisobj #!optional type (args '()))
   (let ((method (if (pair? method)
                     (find-method binding (car method) (cadr method))
                     method))
@@ -555,8 +555,8 @@ public:
           (getter (smoke-stack-stack stack) 0))
         #f)))
 
-(define (call-method-with-callbacks binding method thisobj
-                                    #!optional type (args '()))
+(define (%call-method-with-callbacks binding method thisobj
+                                     #!optional type (args '()))
   (let ((method (if (pair? method)
                     (find-method binding (car method) (cadr method))
                     method))

@@ -600,6 +600,20 @@ public:
           (getter (smoke-stack-stack stack) 0))
         #f)))
 
+(define-syntax call-method-with-callbacks
+  (er-macro-transformer
+   (lambda (x r c)
+     (apply
+      (lambda (binding method thisobj #!optional type args)
+        (let* ((sig (if args (method-sig-from-args args) ""))
+               (m (string-split (symbol->string method) ":"))
+               (method `'(,(car m) ,(string-append (cadr m) sig))))
+          `(%call-method-with-callbacks
+            ,binding ,method ,thisobj ,type
+            ,(if args (list 'quasiquote args) '(list)))))
+      (cdr x)))))
+
+
 (define (call-method/classid+methidx binding classid methidx thisobj
                                      #!optional type (args '()))
   (let ((stack (if (smoke-stack? args)

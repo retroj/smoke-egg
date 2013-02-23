@@ -394,7 +394,7 @@ public:
 (define-generic (destructor this))
 (define-generic (handle-callback this))
 (define-generic (find-class this))
-(define-generic (instantiate this))
+(define-generic (%instantiate this))
 (define-generic (make-scheme-object this))
 
 (define-class <SchemeSmokeBinding> ()
@@ -486,8 +486,8 @@ public:
              (max minsize (slot-value this 'initial-stack-size)))))
     (slot-value this 'stack)))
 
-(define-method (instantiate (this <SchemeSmokeBinding>) cname mname
-                            #!optional (args '()))
+(define-method (%instantiate (this <SchemeSmokeBinding>) cname mname
+                             #!optional (args '()))
   (let ((cid (find-class this cname))
         (mid (find-method this cname mname))
         (stack (if (smoke-stack? args)
@@ -502,12 +502,24 @@ public:
       (call-method/classid+methidx this cid 0 o #f stack)
       o)))
 
+(define-syntax instantiate
+  (er-macro-transformer
+   (lambda (x r c)
+     (apply
+      (lambda (binding classname #!optional args)
+        (let* ((sig (if args (method-sig-from-args args) ""))
+               (classname (symbol->string classname)))
+          `(%instantiate
+            ,binding ,classname ,(string-append classname sig)
+            ,(if args (list 'quasiquote args) '(list)))))
+      (cdr x)))))
+
 (define-syntax with-instance
   (syntax-rules ()
     ((with-instance (this cname mname) proc)
      (with-instance (this cname mname '()) proc))
     ((with-instance (this cname mname args) proc)
-     (let ((obj (instantiate this cname mname args)))
+     (let ((obj (%instantiate this cname mname args)))
        (dynamic-wind
            (lambda () #f)
            (lambda () (proc obj))

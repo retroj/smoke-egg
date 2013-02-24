@@ -486,8 +486,7 @@ public:
              (max minsize (slot-value this 'initial-stack-size)))))
     (slot-value this 'stack)))
 
-(define-method (%new (this <SchemeSmokeBinding>) cname mname
-                     #!optional (args '()))
+(define-method (%new (this <SchemeSmokeBinding>) cname mname args)
   (let ((cid (find-class this cname))
         (mid (find-method this cname mname))
         (stack (if (smoke-stack? args)
@@ -524,7 +523,7 @@ public:
            (lambda () (proc obj))
            (lambda ()
              (let ((mid (find-method this cname (string-append "~" cname))))
-               (%call-method this mid obj))))))))
+               (%call-method this mid obj #f '()))))))))
 
 
 ;;;
@@ -565,11 +564,8 @@ public:
           "fn(m->method, thisobj, (Smoke::Stack)stack);"
           "binding->can_callback = could_callback;"))))
 
-(define (%call-method binding method thisobj #!optional type (args '()))
-  (let ((method (if (pair? method)
-                    (find-method binding (car method) (cadr method))
-                    method))
-        (stack (if (smoke-stack? args)
+(define (%call-method binding method thisobj type args)
+  (let ((stack (if (smoke-stack? args)
                    args
                    (smoke-stack-populate!
                     (get-stack/create binding (max 1 (+ 1 (length args))))
@@ -587,19 +583,15 @@ public:
      (apply
       (lambda (binding method thisobj #!optional type args)
         (let* ((sig (if args (method-sig-from-args args) ""))
-               (m (string-split (symbol->string method) ":"))
-               (method `'(,(car m) ,(string-append (cadr m) sig))))
-          `(%call-method ,binding ,method ,thisobj ,type
-                         ,(if args (list 'quasiquote args) '(list)))))
+               (m (string-split (symbol->string method) ":")))
+          `(let ((mid (find-method ,binding ,(car m) ,(string-append (cadr m) sig))))
+             (%call-method ,binding mid ,thisobj ,type
+                           ,(if args (list 'quasiquote args) '(list))))))
       (cdr x)))))
 
 
-(define (%call-method-with-callbacks binding method thisobj
-                                     #!optional type (args '()))
-  (let ((method (if (pair? method)
-                    (find-method binding (car method) (cadr method))
-                    method))
-        (stack (if (smoke-stack? args)
+(define (%call-method-with-callbacks binding method thisobj type args)
+  (let ((stack (if (smoke-stack? args)
                    args
                    (smoke-stack-populate!
                     (get-stack/create binding (max 1 (+ 1 (length args))))
@@ -617,16 +609,17 @@ public:
      (apply
       (lambda (binding method thisobj #!optional type args)
         (let* ((sig (if args (method-sig-from-args args) ""))
-               (m (string-split (symbol->string method) ":"))
-               (method `'(,(car m) ,(string-append (cadr m) sig))))
-          `(%call-method-with-callbacks
-            ,binding ,method ,thisobj ,type
-            ,(if args (list 'quasiquote args) '(list)))))
+               (m (string-split (symbol->string method) ":")))
+          `(let ((mid (find-method ,binding ,(car m) ,(string-append (cadr m) sig))))
+             (%call-method-with-callbacks
+              ,binding mid ,thisobj ,type
+              ,(if args
+                   (list 'quasiquote args)
+                   '(list))))))
       (cdr x)))))
 
 
-(define (call-method/classid+methidx binding classid methidx thisobj
-                                     #!optional type (args '()))
+(define (call-method/classid+methidx binding classid methidx thisobj type args)
   (let ((stack (if (smoke-stack? args)
                    args
                    (smoke-stack-populate!
